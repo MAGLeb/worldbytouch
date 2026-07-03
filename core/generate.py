@@ -15,8 +15,9 @@ from config import MAP_BOUNDS
 from constants import (
     FULL_WIDTH_MM, FULL_HEIGHT_MM,
     BASE_THICKNESS_MM,
-    MAX_ELEVATION_MM,
-    BOUNDARY_HEIGHT_MM, BOUNDARY_WIDTH_MM,
+    MAX_ELEVATION_MM, TERRAIN_LEVELS,
+    BOUNDARY_HEIGHT_MM, BOUNDARY_WIDTH_MM, BOUNDARY_RELIEF_MM,
+    RIBBON_BOTTOM_Z, RIBBON_TOP_Z,
     WAVE_HEIGHT_MM, WAVE_INTERVAL_MM,
     CAPITAL_HEIGHT_MM, CAPITAL_DIAMETER_MM,
     TAB_HEIGHT_MM, TAB_DEPTH_MM, TAB_WIDTH_MM, SLOT_CLEARANCE_MM,
@@ -138,8 +139,16 @@ def load_elevation():
         Z[land_mask] = (Z[land_mask] / Z[land_mask].max()) * MAX_ELEVATION_MM
     Z[Z < 0] = 0
 
-    # Smooth for tactile comfort
+    # Smooth for tactile comfort (сглаживание выбросов ETOPO, чтобы квантование
+    # не дало одиночных "соль-перец" пикселей на границах плато).
     Z = gaussian_filter(Z, sigma=1.5)
+
+    # Квантование в TERRAIN_LEVELS плато: 0/1/2/3 мм при MAX=4, LEVELS=4.
+    # Ступени >= 2 × MIN_TACTILE_DIFFERENCE_MM — читаемо пальцем.
+    bin_edges = np.linspace(0, MAX_ELEVATION_MM, TERRAIN_LEVELS + 1)
+    level_values = bin_edges[:-1]  # floor каждого бина: [0, 1, 2, 3]
+    bin_idx = np.clip(np.digitize(Z, bin_edges) - 1, 0, TERRAIN_LEVELS - 1)
+    Z = level_values[bin_idx]
 
     return X, Y, Z, lon_deg, lat_deg
 
@@ -305,57 +314,273 @@ def load_boundaries_filtered():
     return gdf
 
 
-def create_boundary_walls(gdf, X, Y, Z):
-    """Create boundary walls as 3D geometry."""
-    print("Creating boundary walls...")
+# ============================================================================
+# Block B — boundary walls via unified skeleton (no per-country duplicates)
+# ============================================================================
+# Подход:
+#   1) unary_union всех полигонов стран → один merged shape
+#   2) .boundary → MultiLineString, где общая граница соседей представлена
+#      РОВНО одной линией (дубли #3.6 больше не возникают).
+#   3) intersection(interior) отбрасывает прямые отрезки по рамке карты
+#      (5°/70°/12°/55°), которые иначе превратились бы в фейковые границы.
+#   4) Каждая линия строится как замкнутый 3D ribbon-solid от RIBBON_BOTTOM_Z
+#      до RIBBON_TOP_Z — цельный столбик, вгрызающийся в плиту и рельеф.
+#      Никаких щелей снизу (#3.1) и никаких висящих верхов по рельефу (#4.7.1).
 
-    all_verts = []
-    all_faces = []
-    vert_offset = 0
 
-    for idx, row in gdf.iterrows():
-        geom = row.geometry
-        if geom is None:
+def _extract_linestrings(geom):
+    """Flatten any geometry into a list of LineStrings."""
+    if geom is None or geom.is_empty:
+        return []
+    gt = geom.geom_type
+    if gt == 'LineString':
+        return [geom]
+    if gt == 'MultiLineString':
+        return list(geom.geoms)
+    if gt == 'GeometryCollection':
+        out = []
+        for g in geom.geoms:
+            out.extend(_extract_linestrings(g))
+        return out
+    return []  # Point, Polygon, etc. — irrelevant for boundary skeleton
+
+
+def _build_ribbon_solid(coords_xy, z_bottom, z_top, width):
+    """Build a watertight ribbon solid along a polyline.
+
+    At each vertex we emit 4 corners (LB, RB, LT, RT) in the local frame
+    (+perp = left, −perp = right, z_bottom / z_top). Corners are SHARED by
+    adjacent segments → every interior joint is manifold without seams.
+    Open-line endpoints get end caps; closed rings loop without caps.
+
+    Interior perpendiculars use the bisector of adjacent segments
+    (= half-mitre). Not a true mitre (sharp convex corners still flatten),
+    but it eliminates the gap-and-fang artefacts of per-segment boxes
+    — which is what #4.7.2 calls out. True mitre = future work.
+
+    Winding is computed explicitly so that all face normals point outward;
+    the mesh has positive volume without relying on trimesh.fix_normals.
+
+    Args:
+        coords_xy: iterable of (x_mm, y_mm) along the polyline
+        z_bottom, z_top: ribbon top/bottom z (mm)
+        width: ribbon cross-section width (mm)
+
+    Returns:
+        (vertices (n*4, 3), faces (k, 3)) numpy arrays, or (None, None) if
+        the polyline degenerates to fewer than 2 usable points.
+    """
+    pts = np.asarray(list(coords_xy), dtype=float)
+    if len(pts) < 2:
+        return None, None
+
+    # Drop consecutive duplicates (shapely.simplify can leave them)
+    keep = [0]
+    for i in range(1, len(pts)):
+        if np.linalg.norm(pts[i] - pts[keep[-1]]) > 1e-6:
+            keep.append(i)
+    pts = pts[keep]
+    if len(pts) < 2:
+        return None, None
+
+    is_closed = np.allclose(pts[0], pts[-1])
+    if is_closed:
+        pts = pts[:-1]  # drop redundant last point
+        if len(pts) < 3:
+            return None, None
+
+    n = len(pts)
+    half_w = width / 2.0
+
+    # Perpendicular at each vertex (2D). For endpoints of open lines use the
+    # single adjacent segment; for interior vertices (and all vertices of a
+    # closed ring) use the normalised bisector of the two adjacent perps.
+    perps = np.zeros((n, 2))
+    for i in range(n):
+        if is_closed:
+            prev_i, next_i = (i - 1) % n, (i + 1) % n
+            has_prev = has_next = True
+        else:
+            has_prev = i > 0
+            has_next = i < n - 1
+            prev_i, next_i = max(i - 1, 0), min(i + 1, n - 1)
+
+        # Compute perpendicular vectors of incoming / outgoing segments
+        p_prev = p_next = None
+        if has_prev:
+            d = pts[i] - pts[prev_i]
+            L = np.linalg.norm(d)
+            if L > 1e-6:
+                p_prev = np.array([-d[1], d[0]]) / L  # CCW 90° (left of forward)
+        if has_next:
+            d = pts[next_i] - pts[i]
+            L = np.linalg.norm(d)
+            if L > 1e-6:
+                p_next = np.array([-d[1], d[0]]) / L
+
+        if p_prev is None and p_next is None:
+            perps[i] = (0.0, half_w)  # pathological; should never happen
+        elif p_prev is None:
+            perps[i] = p_next * half_w
+        elif p_next is None:
+            perps[i] = p_prev * half_w
+        else:
+            avg = p_prev + p_next
+            L = np.linalg.norm(avg)
+            if L < 1e-6:
+                # 180° turn — use one of them
+                perps[i] = p_prev * half_w
+            else:
+                perps[i] = avg / L * half_w
+
+    # Vertices: 4 per polyline vertex (LB, RB, LT, RT)
+    verts = np.empty((n * 4, 3), dtype=float)
+    for i in range(n):
+        x, y = pts[i]
+        px, py = perps[i]
+        verts[i * 4 + 0] = (x + px, y + py, z_bottom)  # 0 LB  (left-bottom)
+        verts[i * 4 + 1] = (x - px, y - py, z_bottom)  # 1 RB  (right-bottom)
+        verts[i * 4 + 2] = (x + px, y + py, z_top)     # 2 LT  (left-top)
+        verts[i * 4 + 3] = (x - px, y - py, z_top)     # 3 RT  (right-top)
+
+    LB, RB, LT, RT = 0, 1, 2, 3
+
+    def vi(i, kind):
+        return i * 4 + kind
+
+    # Segment iteration (closed ring wraps; open line stops at n-1)
+    if is_closed:
+        segs = [(i, (i + 1) % n) for i in range(n)]
+    else:
+        segs = [(i, i + 1) for i in range(n - 1)]
+
+    faces = []
+    for (i, j) in segs:
+        # Top (normal +Z) — verified by cross product for the +X-tangent case
+        faces.append([vi(i, LT), vi(j, RT), vi(j, LT)])
+        faces.append([vi(i, LT), vi(i, RT), vi(j, RT)])
+        # Bottom (normal −Z)
+        faces.append([vi(i, LB), vi(j, LB), vi(j, RB)])
+        faces.append([vi(i, LB), vi(j, RB), vi(i, RB)])
+        # Left side (normal +perp)
+        faces.append([vi(i, LB), vi(i, LT), vi(j, LT)])
+        faces.append([vi(i, LB), vi(j, LT), vi(j, LB)])
+        # Right side (normal −perp)
+        faces.append([vi(i, RB), vi(j, RB), vi(j, RT)])
+        faces.append([vi(i, RB), vi(j, RT), vi(i, RT)])
+
+    # End caps for open lines (normals along ±tangent)
+    if not is_closed:
+        # Front cap at vertex 0 (normal = −tangent, points "back" out of line)
+        faces.append([vi(0, LB), vi(0, RB), vi(0, RT)])
+        faces.append([vi(0, LB), vi(0, RT), vi(0, LT)])
+        # Back cap at vertex n-1 (normal = +tangent)
+        last = n - 1
+        faces.append([vi(last, LB), vi(last, RT), vi(last, RB)])
+        faces.append([vi(last, LB), vi(last, LT), vi(last, RT)])
+
+    return verts, np.array(faces, dtype=np.int64)
+
+
+def create_boundary_walls(gdf):
+    """Build boundary walls as a single unified ribbon skeleton.
+
+    Replaces per-country polygon iteration (which double-walled shared
+    borders) with unary_union → .boundary → one ribbon per merged line.
+    Also filters out the clip-box edges (5°/70°/12°/55°) so there are no
+    fake "border" walls along the rectangular rim of the map.
+
+    Each ribbon is a closed manifold solid from RIBBON_BOTTOM_Z (-5.99)
+    to RIBBON_TOP_Z (+9). The bottom sits just above the plate floor to
+    avoid coplanar faces (one of master's "шупљине" complaints); the top
+    is a uniform plane above the highest terrain for easy finger-skim.
+    """
+    from shapely.ops import unary_union
+    from shapely.geometry import box as shbox
+
+    print("Creating boundary walls (unified skeleton)...")
+
+    # 1. Collect boundary LINES from each polygon, then union the *lines*.
+    #    Union of POLYGONS would merge adjacent countries into one land blob
+    #    and its .boundary would be only the coastline — erasing all
+    #    internal borders. Union of LINES merges shared segments between
+    #    neighbours (dedup) but preserves every boundary segment as itself.
+    polys = [g for g in gdf.geometry.tolist() if g is not None and not g.is_empty]
+    if not polys:
+        print("  No polygons — no walls")
+        return np.array([]), np.array([])
+
+    all_lines = []
+    for poly in polys:
+        if poly.geom_type == 'Polygon':
+            polygons = [poly]
+        elif poly.geom_type == 'MultiPolygon':
+            polygons = list(poly.geoms)
+        else:
             continue
+        for p in polygons:
+            b = p.boundary
+            if b.geom_type == 'LineString':
+                all_lines.append(b)
+            elif b.geom_type == 'MultiLineString':
+                all_lines.extend(b.geoms)
 
-        # Get all polygons
-        polys = [geom] if geom.geom_type == 'Polygon' else list(geom.geoms)
+    if not all_lines:
+        return np.array([]), np.array([])
 
-        for poly in polys:
-            coords = list(poly.exterior.coords)
-            if len(coords) < 3:
-                continue
+    boundary = unary_union(all_lines)
 
-            # Convert to mm and get base elevation
-            points_mm = []
-            for lon, lat in coords[:-1]:  # skip duplicate last point
-                x_mm, y_mm = deg_to_mm(lon, lat)
+    # 2. Filter out clip-box edges by intersecting with a slightly shrunk
+    #    interior box. Segments that lie exactly on 5°/70°/12°/55° disappear;
+    #    real borders touching the clip at a single vertex survive.
+    clip_eps = 1e-3  # ≈ 100 m at these latitudes — well below geoboundary noise
+    interior = shbox(
+        MAP_BOUNDS[0] + clip_eps,
+        MAP_BOUNDS[1] + clip_eps,
+        MAP_BOUNDS[2] - clip_eps,
+        MAP_BOUNDS[3] - clip_eps,
+    )
+    boundary = boundary.intersection(interior)
 
-                # Find nearest grid point for elevation
-                xi = np.argmin(np.abs(X[0, :] - x_mm))
-                yi = np.argmin(np.abs(Y[:, 0] - y_mm))
-                base_z = Z[yi, xi]
+    # 3. Extract all LineStrings, simplify each (tolerance 0.15° ≈ 1 mm on map).
+    lines_deg = _extract_linestrings(boundary)
+    lines_deg = [ln.simplify(0.15, preserve_topology=True) for ln in lines_deg]
 
-                points_mm.append((x_mm, y_mm, base_z))
+    print(f"  Skeleton: {len(lines_deg)} line(s) after union + clip filter")
 
-            if len(points_mm) < 3:
-                continue
+    # 4. Build ribbon solid for each line.
+    all_verts, all_faces = [], []
+    vert_offset = 0
+    built = 0
+    skipped = 0
+    total_pts = 0
 
-            # Create wall vertices for this polygon
-            wall_verts, wall_faces = create_wall_segment(points_mm, BOUNDARY_HEIGHT_MM, BOUNDARY_WIDTH_MM)
+    for ln in lines_deg:
+        coords_mm = [deg_to_mm(lon, lat) for lon, lat in ln.coords]
+        verts, faces = _build_ribbon_solid(
+            coords_mm, RIBBON_BOTTOM_Z, RIBBON_TOP_Z, BOUNDARY_WIDTH_MM
+        )
+        if verts is None:
+            skipped += 1
+            continue
+        all_verts.append(verts)
+        all_faces.append(faces + vert_offset)
+        vert_offset += len(verts)
+        built += 1
+        total_pts += len(verts) // 4
 
-            if len(wall_verts) > 0:
-                all_verts.append(wall_verts)
-                all_faces.append(wall_faces + vert_offset)
-                vert_offset += len(wall_verts)
+    if not all_verts:
+        print("  No ribbons built")
+        return np.array([]), np.array([])
 
-    if all_verts:
-        vertices = np.vstack(all_verts)
-        faces = np.vstack(all_faces)
-        print(f"  Boundary vertices: {len(vertices)}, faces: {len(faces)}")
-        return vertices, faces
-
-    return np.array([]), np.array([])
+    vertices = np.vstack(all_verts)
+    faces = np.vstack(all_faces)
+    print(
+        f"  Built {built} ribbon(s), skipped {skipped}, "
+        f"{total_pts} polyline points → "
+        f"{len(vertices)} verts, {len(faces)} faces"
+    )
+    return vertices, faces
 
 
 # 7-segment digit definitions (which segments are ON for each digit)
@@ -424,27 +649,51 @@ def check_number_collision(x_mm, y_mm, digit_str, gdf, all_land, digit_height=4.
     return False
 
 
-def find_number_position(capital_x, capital_y, digit_str, gdf, all_land, digit_height=4.0, digit_width=2.5):
-    """Try to find a valid position for number that doesn't collide with boundaries.
+def _mm_to_deg_pt(x, y):
+    """mm -> (lon, lat) on the map."""
+    min_lon, min_lat, max_lon, max_lat = MAP_BOUNDS
+    lon = min_lon + (x / FULL_WIDTH_MM) * (max_lon - min_lon)
+    lat = min_lat + (y / FULL_HEIGHT_MM) * (max_lat - min_lat)
+    return lon, lat
 
-    Returns (x_mm, y_mm) if found, None if no valid position.
+
+def find_number_position(capital_x, capital_y, digit_str, country_geom,
+                         digit_height=4.0, digit_width=2.5):
+    """Find an (x_mm, y_mm) near the capital where the number rectangle lies
+    fully INSIDE the country polygon — so it never crosses a border, sits on
+    water, or lands in a neighbour. Expanding-ring search around the capital.
+
+    Returns None if the country is too small to hold the number anywhere; that
+    country then keeps just its bump and gets no number (design 2026-06-19:
+    don't force numbers that don't fit). Because the search probes the whole
+    interior (not just 4 spots by the capital), normal countries with a coastal
+    capital — Greece, Tunisia, Oman… — still get numbered.
     """
+    import math
+    from shapely.geometry import box as shapely_box
+
+    if country_geom is None or country_geom.is_empty:
+        return None
+
     total_width = len(digit_str) * (digit_width + 0.5) - 0.5
-    offset = CAPITAL_DIAMETER_MM / 2 + total_width / 2 + 1.5
-    v_offset = digit_height / 2 + CAPITAL_DIAMETER_MM / 2 + 1.0
+    half_w, half_h = total_width / 2 + 0.5, digit_height / 2 + 0.5  # +pad
+    base = CAPITAL_DIAMETER_MM / 2 + max(total_width, digit_height) / 2 + 1.0
 
-    # Try positions: right, top, bottom, left
-    positions = [
-        (capital_x + offset, capital_y),           # right
-        (capital_x, capital_y + v_offset),         # top
-        (capital_x, capital_y - v_offset),         # bottom
-        (capital_x - offset, capital_y),           # left
-    ]
+    candidates = [(capital_x, capital_y)]
+    for ring in range(1, 9):
+        r = base + (ring - 1) * 2.0
+        for k in range(8):
+            ang = 2 * math.pi * k / 8
+            candidates.append((capital_x + r * math.cos(ang),
+                               capital_y + r * math.sin(ang)))
 
-    for x, y in positions:
-        if not check_number_collision(x, y, digit_str, gdf, all_land, digit_height, digit_width):
+    for x, y in candidates:
+        lon1, lat1 = _mm_to_deg_pt(x - half_w, y - half_h)
+        lon2, lat2 = _mm_to_deg_pt(x + half_w, y + half_h)
+        rect = shapely_box(min(lon1, lon2), min(lat1, lat2),
+                           max(lon1, lon2), max(lat1, lat2))
+        if country_geom.contains(rect):
             return (x, y)
-
     return None
 
 
@@ -590,6 +839,7 @@ def create_capitals_mesh(X, Y, Z, gdf):
     """Create hemisphere bumps and numbers for capital cities."""
     print("Creating capital city markers...")
     from shapely.ops import unary_union
+    from shapely.geometry import Point
 
     min_lon, min_lat, max_lon, max_lat = MAP_BOUNDS
 
@@ -626,37 +876,50 @@ def create_capitals_mesh(X, Y, Z, gdf):
         vert_offset += len(verts)
         bump_count += 1
 
-        # Add number for large countries using smart placement
-        if area >= MIN_AREA_FOR_NUMBER:
-            # Try to find valid position first
-            test_number = str(current_number + 1)
-            position = find_number_position(x_mm, y_mm, test_number, gdf, all_land)
+        # Add a number ONLY if it fits cleanly inside the country (no overlap
+        # with borders or water). Decision 2026-06-19: don't force numbers on
+        # tiny countries — if it doesn't fit, the country keeps just its bump
+        # and gets no number. We TRY every country (no crude area gate): medium
+        # ones that fit get numbered, only the genuinely-too-small are skipped.
+        # Locate the country polygon containing this capital so the number is
+        # placed strictly inside that country (not a neighbour, not the sea).
+        pt = Point(lon, lat)
+        hits = gdf[gdf.geometry.contains(pt)]
+        if len(hits):
+            country_geom = hits.geometry.iloc[0]
+        else:
+            dist = gdf.geometry.distance(pt)
+            country_geom = (gdf.geometry.iloc[int(dist.values.argmin())]
+                            if len(dist) and dist.min() < 0.25 else None)
 
-            if position is None:
-                skipped_names.append(name)
-                continue
+        test_number = str(current_number + 1)
+        position = find_number_position(x_mm, y_mm, test_number, country_geom)
 
-            # Position found - assign sequential number
-            current_number += 1
-            number_str = str(current_number)
-            number_legend.append((current_number, name))
+        if position is None:
+            skipped_names.append(name)
+            continue
 
-            num_x, num_y = position
+        # Position found - assign sequential number
+        current_number += 1
+        number_str = str(current_number)
+        number_legend.append((current_number, name))
 
-            # Find elevation at number position (not capital position)
-            num_xi = np.argmin(np.abs(X[0, :] - num_x))
-            num_yi = np.argmin(np.abs(Y[:, 0] - num_y))
-            num_base_z = Z[num_yi, num_xi]
+        num_x, num_y = position
 
-            num_verts, num_faces = create_digit_mesh(
-                number_str, num_x, num_y, num_base_z,
-                digit_height=4.0, digit_width=2.5, thickness=1.5, line_width=0.8
-            )
+        # Find elevation at number position (not capital position)
+        num_xi = np.argmin(np.abs(X[0, :] - num_x))
+        num_yi = np.argmin(np.abs(Y[:, 0] - num_y))
+        num_base_z = Z[num_yi, num_xi]
 
-            if len(num_verts) > 0:
-                all_verts.append(num_verts)
-                all_faces.append(num_faces + vert_offset)
-                vert_offset += len(num_verts)
+        num_verts, num_faces = create_digit_mesh(
+            number_str, num_x, num_y, num_base_z,
+            digit_height=4.0, digit_width=2.5, thickness=1.5, line_width=0.8
+        )
+
+        if len(num_verts) > 0:
+            all_verts.append(num_verts)
+            all_faces.append(num_faces + vert_offset)
+            vert_offset += len(num_verts)
 
     # Print legend
     print(f"  Legend ({current_number} countries):")
@@ -672,65 +935,6 @@ def create_capitals_mesh(X, Y, Z, gdf):
         return vertices, faces, number_legend
 
     return np.array([]), np.array([]), number_legend
-
-
-def create_wall_segment(points, height, width):
-    """Create a continuous wall from a list of points."""
-    n = len(points)
-    if n < 3:
-        return np.array([]), np.array([])
-
-    vertices = []
-    half_w = width / 2
-
-    for i in range(n):
-        x, y, base_z = points[i]
-
-        # Direction to next point
-        next_i = (i + 1) % n
-        dx = points[next_i][0] - x
-        dy = points[next_i][1] - y
-        length = np.sqrt(dx*dx + dy*dy)
-
-        if length < 0.01:
-            px, py = 0, half_w
-        else:
-            # Perpendicular direction
-            px = -dy / length * half_w
-            py = dx / length * half_w
-
-        # 4 vertices per point: inner-bottom, inner-top, outer-bottom, outer-top
-        vertices.extend([
-            [x + px, y + py, base_z],
-            [x + px, y + py, base_z + height],
-            [x - px, y - py, base_z],
-            [x - px, y - py, base_z + height],
-        ])
-
-    vertices = np.array(vertices)
-
-    # Create faces
-    faces = []
-    for i in range(n):
-        next_i = (i + 1) % n
-
-        # Current quad indices
-        c_ib, c_it, c_ob, c_ot = i * 4, i * 4 + 1, i * 4 + 2, i * 4 + 3
-        n_ib, n_it, n_ob, n_ot = next_i * 4, next_i * 4 + 1, next_i * 4 + 2, next_i * 4 + 3
-
-        # Inner wall
-        faces.append([c_ib, n_ib, c_it])
-        faces.append([c_it, n_ib, n_it])
-
-        # Outer wall
-        faces.append([c_ob, c_ot, n_ob])
-        faces.append([c_ot, n_ot, n_ob])
-
-        # Top
-        faces.append([c_it, n_it, c_ot])
-        faces.append([n_it, n_ot, c_ot])
-
-    return vertices, np.array(faces)
 
 
 # Braille alphabet (dots 1-6 positions: 1,4 top; 2,5 middle; 3,6 bottom)
@@ -873,9 +1077,12 @@ def create_legend_card(number_legend):
     all_faces.append(np.array(base_faces))
     vert_offset += len(base_verts)
 
-    # Layout: 2 columns, number + braille name
+    # Layout: 2 columns, number + braille name.
+    # rows is DYNAMIC = ceil(N / cols) so every numbered country fits on the
+    # plate. The old fixed 12 rows silently pushed entries 25+ off the plate
+    # (they became floating bodies). FIXES #4.12.
     cols = 2
-    rows = 12
+    rows = max(1, int(np.ceil(len(number_legend) / cols)))
     col_width = width / cols
     row_height = (height - 35) / rows  # More space between rows
     start_y = height - 12
@@ -944,11 +1151,13 @@ def create_legend_card(number_legend):
         all_faces.append(lbl_faces + vert_offset)
         vert_offset += len(lbl_verts)
 
-    # 2. Border sample (wall) + label "border"
+    # 2. Border sample (wall) + label "border".
+    # Height = BOUNDARY_RELIEF_MM so the sample feels like the ACTUAL map
+    # border (a low ridge over local relief), not the legacy 4.5 mm wall.
     border_x = 70
     border_verts, border_faces = create_segment_box(
         border_x + sample_width/2, sample_y, border_x + sample_width/2, sample_y + sample_height,
-        base_z, BOUNDARY_HEIGHT_MM, BOUNDARY_WIDTH_MM
+        base_z, BOUNDARY_RELIEF_MM, BOUNDARY_WIDTH_MM
     )
     if len(border_verts) > 0:
         all_verts.append(border_verts)
@@ -1216,8 +1425,11 @@ def create_inner_side_wall(card_verts, edge, card_width, card_height, slots=None
     z_bottom = -BASE_THICKNESS_MM
     slot_z_top = -BASE_THICKNESS_MM + TAB_HEIGHT_MM  # -3
 
-    # Find terrain surface vertices near the edge (with larger tolerance)
-    tolerance = 3.0  # larger tolerance to find terrain vertices
+    # Find terrain surface vertices on the edge.
+    # Tolerance must be tight: grid spacing is ~1 mm, so vertices on the
+    # card boundary sit within ~0.5 mm of it. Larger tolerance (e.g. 3 mm)
+    # catches off-edge wall vertices and produces chaotic inner walls.
+    tolerance = 0.5
 
     if edge == 'right':
         x = card_width
@@ -1270,6 +1482,14 @@ def create_inner_side_wall(card_verts, edge, card_width, card_height, slots=None
         pos1, z1 = edge_verts[i]
         pos2, z2 = edge_verts[i + 1]
 
+        # Skip zero-length segments. Duplicates in edge_verts can arise when
+        # two vertices share the same along-edge coordinate but differ in z
+        # (e.g. terrain sample + boundary-wall vertex at the same y). Without
+        # this guard we emit a degenerate quad with two coincident vertices,
+        # producing zero-area triangles that pollute the mesh (FIXES.md #2.2).
+        if abs(pos2 - pos1) < 0.01:
+            continue
+
         # Check if this segment overlaps with slot
         in_slot = False
         if slot_range:
@@ -1303,9 +1523,19 @@ def create_inner_side_wall(card_verts, edge, card_width, card_height, slots=None
                 [pos2, 0, z_wall_bottom], [pos1, 0, z_wall_bottom],
             ]
 
-        if edge in ['right', 'top']:
+        # Winding must give an outward-pointing normal (away from card interior).
+        # Verts laid out as: v0=(edge, pos1, z_top1), v1=(edge, pos2, z_top2),
+        #                    v2=(edge, pos2, z_bot),  v3=(edge, pos1, z_bot).
+        # cross((v1-v0), (v2-v0)) for [[0,1,2],[0,2,3]] yields:
+        #   - x=const planes (left/right): normal in -X direction
+        #   - y=const planes (top/bottom): normal in +Y direction
+        # Outward directions per edge (card interior is always on the other side):
+        #   right  -> +X (need flip)    left   -> -X (keep)
+        #   top    -> +Y (keep)         bottom -> -Y (need flip)
+        # So 'top' pairs with 'left', 'bottom' pairs with 'right'.
+        if edge in ['top', 'left']:
             faces = [[0, 1, 2], [0, 2, 3]]
-        else:
+        else:  # 'bottom', 'right'
             faces = [[0, 2, 1], [0, 3, 2]]
 
         all_wall_verts.append(np.array(verts))
@@ -1564,7 +1794,7 @@ def main():
 
     # Create terrain mesh
     terrain_verts, terrain_faces = create_terrain_mesh(X, Y, Z)
-    boundary_verts, boundary_faces = create_boundary_walls(gdf_filtered, X, Y, Z)
+    boundary_verts, boundary_faces = create_boundary_walls(gdf_filtered)
     capital_verts, capital_faces, number_legend = create_capitals_mesh(X, Y, Z, gdf_filtered)
 
     # Combine meshes
