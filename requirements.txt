@@ -1,13 +1,20 @@
-requests
-geopandas
-matplotlib
-pandas
+# geometry / mesh
+numpy
+scipy
 shapely
-fiona
-overpy
+trimesh
+manifold3d
+pymeshlab
+pyvista
+
+# geo data
+geopandas
+pandas
 xarray
 netcdf4
-scipy
-numpy
-pyvista
-trimesh
+
+# text glyphs + previews
+matplotlib
+
+# data download
+requests
