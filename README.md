@@ -2,19 +2,11 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![3D Printing](https://img.shields.io/badge/3D%20Printing-PLA-orange.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 A 3D-printable tactile map that helps blind people learn geography by touch.
 
-![Assembled tactile map, 3D render](assets/map_3d.png)
-
-<!-- TODO: add real photos of the printed map as assets/photo_map.jpg,
-     assets/photo_cards.jpg and uncomment:
-
-## Printed Result
-
-![Printed map with legend and alphabet cards](assets/photo_map.jpg)
-![The four puzzle cards and the braille cards](assets/photo_cards.jpg)
--->
+![The printed tactile map with the braille legend and alphabet cards](assets/photo_map.jpg)
 
 ## What is this?
 
@@ -34,6 +26,8 @@ designed so a blind person can:
 The map splits into 4 puzzle pieces (200×160 mm each) that snap together with
 tabs and slots. Legends and alphabet cards come in two languages: English and
 Serbian (Gajica braille, 30 letters including Č Ć Dž Đ Lj Nj Š Ž).
+
+![The printed puzzle cards, braille legend and alphabet cards](assets/photo_cards.jpg)
 
 ## What You Get
 
@@ -147,6 +141,8 @@ blind_map/
 ```
 
 ## Tactile Design
+
+![Assembled tactile map, 3D render](assets/map_3d.png)
 
 | Parameter | Value |
 |-----------|-------|
