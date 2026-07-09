@@ -6,6 +6,10 @@
 
 A 3D-printable tactile map that helps blind people learn geography by touch.
 
+If you are interested in a custom tactile map, an educational 3D model,
+collaboration, or supporting future work on accessible 3D-printed materials,
+[get in touch](#custom-maps-collaboration-support).
+
 ![The printed tactile map with the braille legend and alphabet cards](assets/photo_map.jpg)
 
 ## What is this?
@@ -160,3 +164,27 @@ Key design decision: the border is a low ridge riding **on top of the local
 terrain**, not a tall wall at a fixed height. A finger can trace a border
 continuously and still read the relief on both sides of it; tall walls used to
 bury small lowland countries entirely.
+
+## Custom maps, collaboration, support
+
+This project started as a birthday gift for my blind friend. I would be glad if
+it turns out to be useful to other people too.
+
+Get in touch if you want to:
+
+- adapt this map for another region
+- have a custom tactile map made
+- create an educational tactile 3D model
+- use this idea for a school, a museum, an accessibility project, or a gift
+
+I am open to collaborations, custom orders, and paid work around tactile maps
+and educational 3D models. For anything technical — printing problems, build
+errors, ideas — [open an issue](../../issues).
+
+If you would like to support future work on accessible 3D-printed materials,
+[sponsorship](https://github.com/sponsors/MAGLeb) is welcome.
+
+## License
+
+MIT — see [LICENSE](LICENSE). The STL files it generates are yours to print,
+adapt, and give away.
