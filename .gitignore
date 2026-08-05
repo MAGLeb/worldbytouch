@@ -14,3 +14,6 @@ CURRENT_WORK.md
 # photographs of people – live only on the site, never on GitHub
 site/assets/reader.jpg
 site/assets/author.jpg
+
+# working material for the site – stays local, never published
+content/
