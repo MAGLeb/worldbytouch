@@ -17,3 +17,6 @@ site/assets/author.jpg
 
 # working material for the site – stays local, never published
 content/
+
+# wrangler's local cache – account id and account name, no reason to publish
+.wrangler/
