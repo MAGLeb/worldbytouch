@@ -22,13 +22,13 @@ designed so a blind person can:
 | Country borders | Raised ridge (1.2 mm) that follows the terrain under the finger |
 | Terrain | 4 tactile plateaus: sea / lowland / plateau / mountains (0/1/2/3 mm) |
 | Sea | Wavy texture |
-| Capitals | Small bumps |
-| Country numbers | Raised 7-segment digits (like a calculator), 1–32 |
-| Legend | Braille country list + texture samples (sea, border, city) |
+| Country numbers | Braille number labels (Marburg Medium: ⌀1.6 mm dome dots, 2.5 mm dot pitch) with an anchor ridge that marks the cell frame |
+| Legend | Braille country list + texture samples (sea, border, number key) |
 | Alphabet cards | Raised Latin letter next to its braille cell, for learning braille |
 
-The map splits into 4 puzzle pieces (200×160 mm each) that snap together with
-tabs and slots. Legends and alphabet cards come in two languages: English and
+The map splits into 4 puzzle pieces (200×160 mm each) that lock together with
+dovetail tabs: lay one card flat, lower its neighbour onto the tab from above —
+assembled, the map cannot slide apart. Legends and alphabet cards come in two languages: English and
 Serbian (Gajica braille, 30 letters including Č Ć Dž Đ Lj Nj Š Ž).
 
 ![The printed puzzle cards, braille legend and alphabet cards](assets/photo_cards.jpg)
@@ -41,8 +41,8 @@ Serbian (Gajica braille, 30 letters including Č Ć Dž Đ Lj Nj Š Ž).
 |------|----------|
 | `tactile_map.stl` | The full 400×320 mm map in one piece |
 | `card_1.stl` … `card_4.stl` | The same map split into 4 puzzle cards |
-| `card_legend.stl` | Numbers 1–32 → capital names in English braille |
-| `card_legend_sr.stl` | Numbers 1–32 → country names in Serbian braille |
+| `card_legend.stl` | Braille numbers → country names in English braille |
+| `card_legend_sr.stl` | Braille numbers → country names in Serbian braille |
 | `card_alphabet.stl` | English braille alphabet learning card (26 letters) |
 | `card_alphabet_sr.stl` | Serbian braille alphabet learning card (30 letters) |
 
@@ -55,8 +55,10 @@ self-intersections.
 ## Region Covered
 
 Europe, Middle East, North Africa, Caucasus: 5°–70° E, 12°–55° N.
-32 countries get a tactile number; countries too small for a raised digit
-are marked with their capital bump only.
+27 countries get a braille number label, placed at the country's pole of
+inaccessibility. Countries too small to hold a standard braille cell at a
+readable clearance are left unlabelled — a braille cell is far larger than an
+embossed digit, so fewer countries can carry one.
 
 ![Serbian braille legend](assets/legend.png)
 ![Serbian braille alphabet card](assets/alphabet.png)
@@ -156,9 +158,9 @@ blind_map/
 | Terrain plateaus | 0 / 1 / 2 / 3 mm (sea, lowland, plateau, mountains) |
 | Border ridge | +1.2 mm above local terrain, 1.5 mm wide |
 | Water waves | 2 mm high, every 4 mm |
-| Capital bumps | 2 mm high, ⌀3 mm |
-| Country digits | 1.5 mm raised |
-| Puzzle connectors | Tabs 8×4×3 mm, 0.5 mm clearance |
+| Braille dots | Dome ⌀1.6 mm × 0.8 mm; 2.5 mm dot pitch, 6.0 mm cell pitch (Marburg Medium) |
+| Label anchor ridge | 1.0 mm wide, full cell height, 1.4 mm clear of the dots |
+| Puzzle connectors | Dovetail tabs 8→13 mm wide × 4 × 3 mm, 0.5 mm clearance, drop-in from above |
 
 Key design decision: the border is a low ridge riding **on top of the local
 terrain**, not a tall wall at a fixed height. A finger can trace a border

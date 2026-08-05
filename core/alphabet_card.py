@@ -16,32 +16,24 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
-from constants import CARD_WIDTH_MM as W, CARD_HEIGHT_MM as H, BASE_THICKNESS_MM
-from generate import create_braille_dot, BRAILLE
+from constants import (CARD_WIDTH_MM as W, CARD_HEIGHT_MM as H,
+                       BASE_THICKNESS_MM, BRAILLE_DOT_PITCH_MM)
+from generate import create_braille_cell_dots, BRAILLE
 from text_mesh import build_text
 from heal_mesh import EMBED_MM, prep_body as _prep
 from clean_mesh import clean_arrays
 
 LETTER_MM = 11.0           # Latin cap height
 LETTER_THICK = 1.5
-BRAILLE_CW, BRAILLE_CH = 4.0, 6.0
+# visual cell height = vertical dot span (dot centres), for centring next to
+# the letter; the cell itself is built at standard Marburg pitch in generate.
+BRAILLE_CH = 2 * BRAILLE_DOT_PITCH_MM   # 5.0
 LETTER_GAP = 4.0           # mm between letter and its braille cell
 
 
-def braille_cell(dots, x, y, z, cw=BRAILLE_CW, ch=BRAILLE_CH):
-    """Braille dots for an explicit dot tuple (1-6). Positions:  1 4 / 2 5 / 3 6."""
-    pos = {1: (0, ch * 2 / 3), 2: (0, ch / 3), 3: (0, 0),
-           4: (cw * 0.6, ch * 2 / 3), 5: (cw * 0.6, ch / 3), 6: (cw * 0.6, 0)}
-    vs, fs, off = [], [], 0
-    for d in dots:
-        dx, dy = pos[d]
-        v, f = create_braille_dot(x + dx, y + dy, z)
-        vs.append(v)
-        fs.append(f + off)
-        off += len(v)
-    if vs:
-        return np.vstack(vs), np.vstack(fs)
-    return np.array([]), np.array([])
+def braille_cell(dots, x, y, z):
+    """Braille dots for an explicit dot tuple (1-6) at standard pitch."""
+    return create_braille_cell_dots(dots, x, y, z)
 
 
 def _tm(v, f):

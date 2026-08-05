@@ -13,6 +13,8 @@ from scipy.ndimage import gaussian_filter
 # Configuration
 from config import MAP_BOUNDS
 from constants import (
+    LABEL_CLEARANCE_LADDER_MM,
+    CARD_WIDTH_MM, CARD_HEIGHT_MM,
     FULL_WIDTH_MM, FULL_HEIGHT_MM,
     BASE_THICKNESS_MM,
     MAX_ELEVATION_MM, TERRAIN_LEVELS,
@@ -20,8 +22,13 @@ from constants import (
     RIBBON_BOTTOM_Z, RIBBON_TOP_Z,
     WAVE_HEIGHT_MM, WAVE_INTERVAL_MM,
     CAPITAL_HEIGHT_MM, CAPITAL_DIAMETER_MM,
-    TAB_HEIGHT_MM, TAB_DEPTH_MM, TAB_WIDTH_MM, SLOT_CLEARANCE_MM,
+    TAB_HEIGHT_MM, TAB_DEPTH_MM, TAB_WIDTH_MM, TAB_HEAD_WIDTH_MM,
+    SLOT_CLEARANCE_MM, SLOT_Z_CLEARANCE_MM,
+    BRAILLE_DOT_RADIUS_MM, BRAILLE_DOT_HEIGHT_MM, BRAILLE_DOT_PITCH_MM,
+    BRAILLE_CELL_PITCH_MM, BRAILLE_SKIRT_MM,
+    BRAILLE_ANCHOR_WIDTH_MM, BRAILLE_ANCHOR_GAP_MM,
 )
+from countries import COUNTRIES, name_en
 
 # Capitals data: (name, lon, lat, country_area_approx)
 # area > 1.0 = show number, smaller = just bump
@@ -657,13 +664,12 @@ def _mm_to_deg_pt(x, y):
     return lon, lat
 
 
-def find_number_position(capital_x, capital_y, digit_str, country_geom,
-                         digit_height=4.0, digit_width=2.5):
-    """Find an (x_mm, y_mm) near the capital where the number rectangle lies
-    fully INSIDE the country polygon — so it never crosses a border, sits on
-    water, or lands in a neighbour. Expanding-ring search around the capital.
+def find_number_position(capital_x, capital_y, digit_str, country_geom):
+    """Find an (x_mm, y_mm) near the capital where the BRAILLE number label
+    lies fully INSIDE the country polygon — so it never crosses a border, sits
+    on water, or lands in a neighbour. Expanding-ring search around the capital.
 
-    Returns None if the country is too small to hold the number anywhere; that
+    Returns None if the country is too small to hold the label anywhere; that
     country then keeps just its bump and gets no number (design 2026-06-19:
     don't force numbers that don't fit). Because the search probes the whole
     interior (not just 4 spots by the capital), normal countries with a coastal
@@ -675,24 +681,57 @@ def find_number_position(capital_x, capital_y, digit_str, country_geom,
     if country_geom is None or country_geom.is_empty:
         return None
 
-    total_width = len(digit_str) * (digit_width + 0.5) - 0.5
-    half_w, half_h = total_width / 2 + 0.5, digit_height / 2 + 0.5  # +pad
-    base = CAPITAL_DIAMETER_MM / 2 + max(total_width, digit_height) / 2 + 1.0
+    total_width, total_height = braille_label_size(digit_str)
+    half_w, half_h = total_width / 2 + 0.5, total_height / 2 + 0.5  # +pad
+    base = CAPITAL_DIAMETER_MM / 2 + max(total_width, total_height) / 2 + 1.0
 
     candidates = [(capital_x, capital_y)]
-    for ring in range(1, 9):
-        r = base + (ring - 1) * 2.0
+    for ring in range(1, 15):
+        r = base + (ring - 1) * 2.5
         for k in range(8):
             ang = 2 * math.pi * k / 8
             candidates.append((capital_x + r * math.cos(ang),
                                capital_y + r * math.sin(ang)))
 
-    for x, y in candidates:
+    # keep the label OFF the capital bump (review 2026-08-04: the first ring
+    # candidate is the capital itself, and the grid fallback sorts nearest-
+    # first — labels were landing right on the 2 mm bump dome).
+    bump_r = CAPITAL_DIAMETER_MM / 2 + 0.5
+
+    def _fits(x, y):
+        # label rect must not overlap the capital bump footprint
+        ddx = max(abs(x - capital_x) - half_w, 0.0)
+        ddy = max(abs(y - capital_y) - half_h, 0.0)
+        if ddx * ddx + ddy * ddy < bump_r * bump_r:
+            return False
         lon1, lat1 = _mm_to_deg_pt(x - half_w, y - half_h)
         lon2, lat2 = _mm_to_deg_pt(x + half_w, y + half_h)
         rect = shapely_box(min(lon1, lon2), min(lat1, lat2),
                            max(lon1, lon2), max(lat1, lat2))
-        if country_geom.contains(rect):
+        return country_geom.contains(rect)
+
+    for x, y in candidates:
+        if _fits(x, y):
+            return (x, y)
+
+    # FALLBACK (2026-08-04): the ring probe samples only 8 directions and can
+    # miss the one interior pocket of a narrow/crescent country (Croatia,
+    # Slovakia, Georgia…). Walk a 3 mm grid over the country's bbox, nearest-
+    # to-capital first, and take the first spot the label truly fits.
+    from config import MAP_BOUNDS as _MB
+    min_lon, min_lat, max_lon, max_lat = _MB
+    g_lon1, g_lat1, g_lon2, g_lat2 = country_geom.bounds
+    gx1 = max(0.0, (g_lon1 - min_lon) / (max_lon - min_lon) * FULL_WIDTH_MM)
+    gx2 = min(FULL_WIDTH_MM, (g_lon2 - min_lon) / (max_lon - min_lon) * FULL_WIDTH_MM)
+    gy1 = max(0.0, (g_lat1 - min_lat) / (max_lat - min_lat) * FULL_HEIGHT_MM)
+    gy2 = min(FULL_HEIGHT_MM, (g_lat2 - min_lat) / (max_lat - min_lat) * FULL_HEIGHT_MM)
+    step = 3.0
+    grid = [(x, y)
+            for x in np.arange(gx1 + half_w, gx2 - half_w + 1e-9, step)
+            for y in np.arange(gy1 + half_h, gy2 - half_h + 1e-9, step)]
+    grid.sort(key=lambda p: (p[0] - capital_x) ** 2 + (p[1] - capital_y) ** 2)
+    for x, y in grid[:4000]:
+        if _fits(x, y):
             return (x, y)
     return None
 
@@ -835,106 +874,160 @@ def create_capital_bump(x_mm, y_mm, base_z, radius, height, segments=12):
     return np.array(vertices), np.array(faces)
 
 
-def create_capitals_mesh(X, Y, Z, gdf):
-    """Create hemisphere bumps and numbers for capital cities."""
-    print("Creating capital city markers...")
-    from shapely.ops import unary_union
-    from shapely.geometry import Point
+def create_country_labels_mesh(X, Y, Z, gdf, max_labels=32, verbose=True):
+    """Braille number labels placed INSIDE each country polygon.
 
+    Replaces the capital-driven version (2026-08-05). Three changes:
+      * no capital bumps — the number alone points at the legend, which frees
+        the space the 3 mm dome used to eat and removes a feature that was
+        easily confused with a braille dot;
+      * the label is keyed on the COUNTRY POLYGON, not on a capital
+        coordinate. The old list had Rabat at +6.85 lon instead of -6.85, so
+        its label landed inside ALGERIA and the legend called Algeria
+        "Rabat/Maroko"; Moscow (lat 55.75) and Algiers (lon 3.06) fell outside
+        the map frame, so Russia and Algeria got no label at all;
+      * the position is the pole of inaccessibility (polylabel) — the most
+        central point of the country — instead of a ring search around the
+        capital, so the label sits where the country is widest.
+    """
+    from shapely.geometry import box as shapely_box, Point
+    from shapely.ops import unary_union, polylabel
+
+    print("Placing country number labels...")
     min_lon, min_lat, max_lon, max_lat = MAP_BOUNDS
+    frame = shapely_box(min_lon, min_lat, max_lon, max_lat)
+    lon_per_mm = (max_lon - min_lon) / FULL_WIDTH_MM
+    lat_per_mm = (max_lat - min_lat) / FULL_HEIGHT_MM
 
-    # Create union of all land for water check
-    all_land = unary_union(gdf.geometry.tolist())
+    # The border ridge rides ON the polygon edge and eats BOUNDARY_WIDTH/2 of
+    # the interior; on top of that the label wants a clear field. Rather than
+    # one global value, walk the ladder per country: a big country gets the
+    # full 3 mm the guidelines ask for, a small one gets the least that still
+    # works instead of losing its label entirely.
+    # The map is cut into 2x2 puzzle cards, so there is exactly one vertical
+    # and one horizontal seam. A label straddling one is sliced in half and
+    # unreadable on BOTH cards — the placement must refuse those spots.
+    seam_lon = min_lon + CARD_WIDTH_MM * lon_per_mm
+    seam_lat = min_lat + CARD_HEIGHT_MM * lat_per_mm
 
-    all_verts = []
-    all_faces = []
-    vert_offset = 0
-    bump_count = 0
-    current_number = 0
-    skipped_names = []
-    number_legend = []  # (number, name) for legend
+    def fits(geom, x, y, w_mm, h_mm, margin_mm):
+        hw = (w_mm / 2 + margin_mm) * lon_per_mm
+        hh = (h_mm / 2 + margin_mm) * lat_per_mm
+        if (x - hw) < seam_lon < (x + hw) or (y - hh) < seam_lat < (y + hh):
+            return False
+        return geom.contains(shapely_box(x - hw, y - hh, x + hw, y + hh))
 
-    for i, (name, lon, lat, area) in enumerate(CAPITALS):
-        # Check if within map bounds
-        if not (min_lon <= lon <= max_lon and min_lat <= lat <= max_lat):
+    def find_pos(geom, digits):
+        """(x_deg, y_deg, clear_mm) at the most generous clearance that fits."""
+        w_mm, h_mm = braille_label_size(digits)
+        x0, y0, x1, y1 = geom.bounds
+        edge = geom.boundary
+        for clear in LABEL_CLEARANCE_LADDER_MM:
+            margin_mm = BOUNDARY_WIDTH_MM / 2 + clear
+            try:
+                p = polylabel(geom, tolerance=0.02)
+                if fits(geom, p.x, p.y, w_mm, h_mm, margin_mm):
+                    return (p.x, p.y, clear)
+            except Exception:
+                pass
+            # fallback: grid, keep the candidate with the most clearance
+            best, best_clear = None, -1.0
+            for i in range(26):
+                x = x0 + (i + 0.5) * (x1 - x0) / 26
+                for j in range(26):
+                    y = y0 + (j + 0.5) * (y1 - y0) / 26
+                    if not fits(geom, x, y, w_mm, h_mm, margin_mm):
+                        continue
+                    c = edge.distance(Point(x, y))
+                    if c > best_clear:
+                        best, best_clear = (x, y), c
+            if best is not None:
+                return (best[0], best[1], clear)
+        return None
+
+    # one geometry per ISO3, clipped to the map frame, largest part only
+    parts = {}
+    for _, row in gdf.iterrows():
+        iso = str(row.get('source_file') or '')
+        if iso in COUNTRIES:
+            parts.setdefault(iso, []).append(row.geometry)
+
+    cands, no_room = [], []
+    for iso, geoms in parts.items():
+        g = unary_union(geoms).intersection(frame)
+        if g.is_empty:
             continue
+        if g.geom_type == 'MultiPolygon':
+            g = max(g.geoms, key=lambda p: p.area)
+        pos2 = find_pos(g, '00')
+        pos1 = None if pos2 else find_pos(g, '0')
+        if pos2 is None and pos1 is None:
+            no_room.append(iso)
+            continue
+        cands.append(dict(iso=iso, area=g.area, pos2=pos2, pos1=pos1))
 
-        # Convert to mm
-        x_mm, y_mm = deg_to_mm(lon, lat)
+    # The nine single-cell numbers are scarce: give them to the countries that
+    # can ONLY hold a one-cell label, biggest first.
+    tight = sorted([c for c in cands if c["pos2"] is None], key=lambda c: -c["area"])
+    easy = sorted([c for c in cands if c["pos2"] is not None], key=lambda c: -c["area"])
+    dropped = []
+    if len(tight) > 9:
+        dropped += tight[9:]
+        tight = tight[:9]
+    room = max(0, max_labels - len(tight))
+    if len(easy) > room:
+        dropped += easy[room:]
+        easy = easy[:room]
 
-        # Find base elevation at this point
-        xi = np.argmin(np.abs(X[0, :] - x_mm))
-        yi = np.argmin(np.abs(Y[:, 0] - y_mm))
-        base_z = Z[yi, xi]
+    ordered = [(c["iso"], c["pos1"]) for c in tight] + \
+              [(c["iso"], c["pos2"]) for c in easy]
 
-        # Create bump
-        radius = CAPITAL_DIAMETER_MM / 2
-        verts, faces = create_capital_bump(x_mm, y_mm, base_z, radius, CAPITAL_HEIGHT_MM)
+    all_verts, all_faces, vert_offset = [], [], 0
+    number_legend = []          # (number, iso3)
+    placements = []             # (number, iso3, x_mm, y_mm) for verification
 
-        all_verts.append(verts)
-        all_faces.append(faces + vert_offset)
-        vert_offset += len(verts)
-        bump_count += 1
+    for num, (iso, position) in enumerate(ordered, start=1):
+        number_str = str(num)
+        number_legend.append((num, iso))
+        num_x, num_y = deg_to_mm(position[0], position[1])
+        clear_mm = position[2]
 
-        # Add a number ONLY if it fits cleanly inside the country (no overlap
-        # with borders or water). Decision 2026-06-19: don't force numbers on
-        # tiny countries — if it doesn't fit, the country keeps just its bump
-        # and gets no number. We TRY every country (no crude area gate): medium
-        # ones that fit get numbered, only the genuinely-too-small are skipped.
-        # Locate the country polygon containing this capital so the number is
-        # placed strictly inside that country (not a neighbour, not the sea).
-        pt = Point(lon, lat)
-        hits = gdf[gdf.geometry.contains(pt)]
-        if len(hits):
-            country_geom = hits.geometry.iloc[0]
+        # Base height = MAX terrain over the label footprint, not the centre
+        # sample: a label straddling a 1 mm plateau step had its 0.8 mm domes
+        # drowned on the higher side. With the max, every dot APEX sits on one
+        # flat plane; the 4.2 mm skirt still anchors dots over lower ground.
+        lw, lh = braille_label_size(number_str)
+        xm = (X[0, :] >= num_x - lw / 2) & (X[0, :] <= num_x + lw / 2)
+        ym = (Y[:, 0] >= num_y - lh / 2) & (Y[:, 0] <= num_y + lh / 2)
+        if xm.any() and ym.any():
+            base_z = float(Z[np.ix_(ym, xm)].max())
         else:
-            dist = gdf.geometry.distance(pt)
-            country_geom = (gdf.geometry.iloc[int(dist.values.argmin())]
-                            if len(dist) and dist.min() < 0.25 else None)
+            base_z = float(Z[np.argmin(np.abs(Y[:, 0] - num_y)),
+                             np.argmin(np.abs(X[0, :] - num_x))])
 
-        test_number = str(current_number + 1)
-        position = find_number_position(x_mm, y_mm, test_number, country_geom)
+        v, f = create_braille_number(number_str, num_x, num_y, base_z)
+        if len(v) > 0:
+            all_verts.append(v)
+            all_faces.append(f + vert_offset)
+            vert_offset += len(v)
+        placements.append((num, iso, num_x, num_y, clear_mm))
 
-        if position is None:
-            skipped_names.append(name)
-            continue
-
-        # Position found - assign sequential number
-        current_number += 1
-        number_str = str(current_number)
-        number_legend.append((current_number, name))
-
-        num_x, num_y = position
-
-        # Find elevation at number position (not capital position)
-        num_xi = np.argmin(np.abs(X[0, :] - num_x))
-        num_yi = np.argmin(np.abs(Y[:, 0] - num_y))
-        num_base_z = Z[num_yi, num_xi]
-
-        num_verts, num_faces = create_digit_mesh(
-            number_str, num_x, num_y, num_base_z,
-            digit_height=4.0, digit_width=2.5, thickness=1.5, line_width=0.8
-        )
-
-        if len(num_verts) > 0:
-            all_verts.append(num_verts)
-            all_faces.append(num_faces + vert_offset)
-            vert_offset += len(num_verts)
-
-    # Print legend
-    print(f"  Legend ({current_number} countries):")
-    for num, name in number_legend:
-        print(f"    {num:2d}. {name}")
-    if skipped_names:
-        print(f"  Skipped (no valid position): {', '.join(skipped_names)}")
-    print(f"  Created {bump_count} bumps, {current_number} numbers")
+    if verbose:
+        print(f"  Labelled {len(number_legend)} countries:")
+        for (num, iso), pl in zip(number_legend, placements):
+            print(f"    {num:2d}. {iso}  {name_en(iso):<14} clear {pl[4]:.1f} mm")
+        if dropped:
+            print("  Over legend cap: " + ", ".join(c['iso'] for c in dropped))
+        if no_room:
+            print("  Too small for any label: " + ", ".join(sorted(no_room)))
+        missing = [i for i in COUNTRIES if i not in parts]
+        if missing:
+            print("  Not on this map: " + ", ".join(sorted(missing)))
 
     if all_verts:
-        vertices = np.vstack(all_verts)
-        faces = np.vstack(all_faces)
-        return vertices, faces, number_legend
-
-    return np.array([]), np.array([]), number_legend
+        return (np.vstack(all_verts), np.vstack(all_faces),
+                number_legend, placements)
+    return np.array([]), np.array([]), number_legend, placements
 
 
 # Braille alphabet (dots 1-6 positions: 1,4 top; 2,5 middle; 3,6 bottom)
@@ -949,90 +1042,214 @@ BRAILLE = {
 }
 
 
-def create_braille_dot(x, y, z, radius=1.0, height=1.2):
-    """Create a single braille dot (small hemisphere)."""
-    segments = 8
+def create_braille_dot(x, y, z,
+                       radius=BRAILLE_DOT_RADIUS_MM,
+                       height=BRAILLE_DOT_HEIGHT_MM,
+                       skirt=BRAILLE_SKIRT_MM):
+    """Create a single braille dot: a smooth DOME on a buried cylinder skirt.
+
+    The dome (spherical cap) is what the finger feels — rounded, never sharp.
+    The skirt extends `skirt` mm BELOW z so the boolean union always fuses the
+    dot into the plate/terrain even after embed shifts or a relief step; it is
+    invisible in the print. (The old dot was an 8-segment CONE with an apex
+    point — felt tiny and sharp — and lost height to embedding.)
+    """
+    segments = 12
+    rings = 4  # latitude rings of the dome (excluding apex)
     vertices = []
     faces = []
 
-    # Top point
+    # Skirt bottom ring
+    for seg in range(segments):
+        a = (seg / segments) * 2 * np.pi
+        vertices.append([x + radius * np.cos(a), y + radius * np.sin(a), z - skirt])
+    # Skirt top ring == dome base ring (at z)
+    for seg in range(segments):
+        a = (seg / segments) * 2 * np.pi
+        vertices.append([x + radius * np.cos(a), y + radius * np.sin(a), z])
+
+    # Skirt walls
+    for seg in range(segments):
+        n = (seg + 1) % segments
+        faces.append([seg, n, segments + seg])
+        faces.append([n, segments + n, segments + seg])
+
+    # Dome rings: spherical cap, sphere radius R through base circle and apex
+    R = (radius * radius + height * height) / (2.0 * height)
+    zc = z + height - R          # sphere centre
+    # arccos is correct on BOTH branches (height <=> radius); arcsin would
+    # silently fold caps taller than a hemisphere back under 90°.
+    a0 = np.arccos(np.clip((R - height) / R, -1.0, 1.0))  # polar angle of base ring
+    ring_start = segments        # dome base ring index
+    for r_i in range(1, rings):
+        ang = a0 * (1 - r_i / rings)
+        rr = R * np.sin(ang)
+        zz = zc + R * np.cos(ang)
+        idx0 = len(vertices)
+        for seg in range(segments):
+            a = (seg / segments) * 2 * np.pi
+            vertices.append([x + rr * np.cos(a), y + rr * np.sin(a), zz])
+        prev = ring_start if r_i == 1 else idx0 - segments
+        for seg in range(segments):
+            n = (seg + 1) % segments
+            faces.append([prev + seg, prev + n, idx0 + seg])
+            faces.append([prev + n, idx0 + n, idx0 + seg])
+
+    # Apex
+    apex = len(vertices)
     vertices.append([x, y, z + height])
-
-    # Ring
+    last = apex - segments
     for seg in range(segments):
-        angle = (seg / segments) * 2 * np.pi
-        vx = x + radius * np.cos(angle)
-        vy = y + radius * np.sin(angle)
-        vertices.append([vx, vy, z])
+        n = (seg + 1) % segments
+        faces.append([last + seg, last + n, apex])
 
-    # Top faces
+    # Bottom cap (fan on skirt bottom ring)
+    center = len(vertices)
+    vertices.append([x, y, z - skirt])
     for seg in range(segments):
-        next_seg = (seg + 1) % segments
-        faces.append([0, 1 + seg, 1 + next_seg])
-
-    # Bottom cap
-    bottom_idx = len(vertices)
-    vertices.append([x, y, z])
-    for seg in range(segments):
-        next_seg = (seg + 1) % segments
-        faces.append([bottom_idx, 1 + next_seg, 1 + seg])
+        n = (seg + 1) % segments
+        faces.append([center, n, seg])
 
     return np.array(vertices), np.array(faces)
 
 
-def create_braille_char(char, x, y, z, cell_width=3.0, cell_height=4.5):
-    """Create braille character at position."""
-    char = char.lower()
-    if char not in BRAILLE:
-        return np.array([]), np.array([])
+# Braille digits (French/UEB and Serbian alike): letters a-j stand for 1-90.
+# On the map the label is a compact 1-2 cell KEY (no number sign — tactile
+# graphics practice for space-constrained keys; the legend pairs each key
+# with its name, which teaches the convention). Flip NUMBER_SIGN to True to
+# prefix every number with the ⠼ indicator (braille-канонично, но шире —
+# часть маленьких стран потеряет номер, не влезет).
+NUMBER_SIGN = False
+NUMBER_SIGN_DOTS = (3, 4, 5, 6)
+BRAILLE_DIGITS = {
+    '1': (1,), '2': (1, 2), '3': (1, 4), '4': (1, 4, 5), '5': (1, 5),
+    '6': (1, 2, 4), '7': (1, 2, 4, 5), '8': (1, 2, 5), '9': (2, 4),
+    '0': (2, 4, 5),
+}
 
-    dots = BRAILLE[char]
-    if not dots:
-        return np.array([]), np.array([])
 
-    # Dot positions within cell (1-6)
-    # 1 4
-    # 2 5
-    # 3 6
-    dot_positions = {
-        1: (0, cell_height * 2/3),
-        2: (0, cell_height * 1/3),
-        3: (0, 0),
-        4: (cell_width * 0.6, cell_height * 2/3),
-        5: (cell_width * 0.6, cell_height * 1/3),
-        6: (cell_width * 0.6, 0),
+def braille_dot_positions(pitch=BRAILLE_DOT_PITCH_MM):
+    """Dot offsets (1-6) within a cell, standard 2x3 grid at `pitch`.
+       1 4
+       2 5      (x, y) is the CENTRE of dot 3 (bottom-left).
+       3 6
+    """
+    return {
+        1: (0, pitch * 2), 2: (0, pitch), 3: (0, 0),
+        4: (pitch, pitch * 2), 5: (pitch, pitch), 6: (pitch, 0),
     }
 
-    all_verts = []
-    all_faces = []
-    vert_offset = 0
 
+def create_braille_cell_dots(dots, x, y, z):
+    """Braille dots for an explicit dot tuple (1-6) at standard pitch."""
+    pos = braille_dot_positions()
+    all_verts, all_faces, vert_offset = [], [], 0
     for dot in dots:
-        dx, dy = dot_positions[dot]
+        dx, dy = pos[dot]
         dot_verts, dot_faces = create_braille_dot(x + dx, y + dy, z)
         if len(dot_verts) > 0:
             all_verts.append(dot_verts)
             all_faces.append(dot_faces + vert_offset)
             vert_offset += len(dot_verts)
+    if all_verts:
+        return np.vstack(all_verts), np.vstack(all_faces)
+    return np.array([]), np.array([])
+
+
+def create_braille_char(char, x, y, z):
+    """Create braille character at position (standard Marburg Medium cell)."""
+    char = char.lower()
+    if char not in BRAILLE:
+        return np.array([]), np.array([])
+    dots = BRAILLE[char]
+    if not dots:
+        return np.array([]), np.array([])
+    return create_braille_cell_dots(dots, x, y, z)
+
+
+def create_braille_text(text, x, y, z):
+    """Create braille text string at standard cell pitch (6.0 mm)."""
+    all_verts = []
+    all_faces = []
+    vert_offset = 0
+
+    for i, char in enumerate(text):
+        char_x = x + i * BRAILLE_CELL_PITCH_MM
+        char_verts, char_faces = create_braille_char(char, char_x, y, z)
+        if len(char_verts) > 0:
+            all_verts.append(char_verts)
+            all_faces.append(char_faces + vert_offset)
+            vert_offset += len(char_verts)
 
     if all_verts:
         return np.vstack(all_verts), np.vstack(all_faces)
     return np.array([]), np.array([])
 
 
-def create_braille_text(text, x, y, z, cell_width=3.0, cell_height=4.5, spacing=0.5):
-    """Create braille text string."""
-    all_verts = []
-    all_faces = []
-    vert_offset = 0
+def braille_number_cells(number_str):
+    """Dot tuples for a number label (optionally prefixed with ⠼)."""
+    cells = [NUMBER_SIGN_DOTS] if NUMBER_SIGN else []
+    cells += [BRAILLE_DIGITS[d] for d in number_str if d in BRAILLE_DIGITS]
+    return cells
 
-    for i, char in enumerate(text):
-        char_x = x + i * (cell_width + spacing)
-        char_verts, char_faces = create_braille_char(char, char_x, y, z, cell_width, cell_height)
-        if len(char_verts) > 0:
-            all_verts.append(char_verts)
-            all_faces.append(char_faces + vert_offset)
-            vert_offset += len(char_verts)
+
+# Extra width the anchor ridge adds to the LEFT of the dot field: the ridge
+# itself plus the clear gap between it and the nearest dot edge.
+ANCHOR_LEAD_MM = BRAILLE_ANCHOR_WIDTH_MM + BRAILLE_ANCHOR_GAP_MM
+
+
+def braille_label_size(number_str):
+    """(width, height) in mm of a braille number label incl. anchor + dots."""
+    n = len(braille_number_cells(number_str))
+    dots_w = (n - 1) * BRAILLE_CELL_PITCH_MM + BRAILLE_DOT_PITCH_MM \
+        + 2 * BRAILLE_DOT_RADIUS_MM
+    height = 2 * BRAILLE_DOT_PITCH_MM + 2 * BRAILLE_DOT_RADIUS_MM
+    return dots_w + ANCHOR_LEAD_MM, height
+
+
+def create_braille_anchor(x_right, cy, base_z):
+    """Anchor ridge whose RIGHT face is at x_right, vertically centred on cy.
+
+    Spans the full dot-row extent so its ends mark the top and bottom rows.
+    Sits on the same skirt trick as the dots so heal_mesh does not sink it.
+    """
+    half_h = BRAILLE_DOT_PITCH_MM + BRAILLE_DOT_RADIUS_MM
+    x = x_right - BRAILLE_ANCHOR_WIDTH_MM / 2
+    return create_segment_box(
+        x, cy - half_h, x, cy + half_h,
+        base_z - BRAILLE_SKIRT_MM,
+        BRAILLE_SKIRT_MM + BRAILLE_DOT_HEIGHT_MM,
+        BRAILLE_ANCHOR_WIDTH_MM,
+    )
+
+
+def create_braille_number(number_str, cx, cy, base_z):
+    """Braille number label CENTRED at (cx, cy), dots on top of base_z.
+
+    Layout, left to right: anchor ridge, gap, then the braille cells.
+    """
+    cells = braille_number_cells(number_str)
+    if not cells:
+        return np.array([]), np.array([])
+    n = len(cells)
+    total_w, _ = braille_label_size(number_str)
+    left = cx - total_w / 2                       # left edge of the whole label
+    # dot-column centres start one dot radius in from the dot field's left edge
+    x0 = left + ANCHOR_LEAD_MM + BRAILLE_DOT_RADIUS_MM
+    y0 = cy - BRAILLE_DOT_PITCH_MM                # dot rows at cy-2.5, cy, cy+2.5
+
+    all_verts, all_faces, vert_offset = [], [], 0
+
+    def add(v, f):
+        nonlocal vert_offset
+        if len(v) > 0:
+            all_verts.append(v)
+            all_faces.append(f + vert_offset)
+            vert_offset += len(v)
+
+    add(*create_braille_anchor(left + BRAILLE_ANCHOR_WIDTH_MM, cy, base_z))
+    for i, dots in enumerate(cells):
+        add(*create_braille_cell_dots(dots, x0 + i * BRAILLE_CELL_PITCH_MM, y0, base_z))
 
     if all_verts:
         return np.vstack(all_verts), np.vstack(all_faces)
@@ -1077,63 +1294,64 @@ def create_legend_card(number_legend):
     all_faces.append(np.array(base_faces))
     vert_offset += len(base_verts)
 
-    # Layout: 2 columns, number + braille name.
+    # Layout: 2 columns, braille number key + braille name, standard Marburg
+    # cell pitch (2026-08-04: 7-segment numbers replaced by braille keys —
+    # they must match the braille labels now used on the map itself).
     # rows is DYNAMIC = ceil(N / cols) so every numbered country fits on the
-    # plate. The old fixed 12 rows silently pushed entries 25+ off the plate
-    # (they became floating bodies). FIXES #4.12.
+    # plate (FIXES #4.12). Line pitch ~8 mm is below the 10 mm book standard —
+    # 16 rows simply don't fit a 160 mm card at 10 mm — but rows are short,
+    # left-aligned and separated by >3 mm of flat plate.
     cols = 2
     rows = max(1, int(np.ceil(len(number_legend) / cols)))
     col_width = width / cols
-    row_height = (height - 35) / rows  # More space between rows
-    start_y = height - 12
+    start_y = height - 16            # first row: bottom dot-row centre
+    row_pitch = (start_y - 22) / max(1, rows - 1) if rows > 1 else 0
+    max_chars = 12
 
-    for idx, (num, name) in enumerate(number_legend):
+    for idx, (num, iso) in enumerate(number_legend):
+        name = name_en(iso) or iso
         col = idx // rows
         row = idx % rows
 
-        x = col * col_width + 5
-        y = start_y - row * row_height
+        x = col * col_width + 4
+        y = start_y - row * row_pitch
 
-        # Create number (7-segment)
-        num_verts, num_faces = create_digit_mesh(
-            str(num), x + 5, y, base_z,
-            digit_height=5.0, digit_width=3.0, thickness=2.5, line_width=1.0
-        )
-        if len(num_verts) > 0:
-            all_verts.append(num_verts)
-            all_faces.append(num_faces + vert_offset)
-            vert_offset += len(num_verts)
+        # Number key in braille (same cells as on the map)
+        for i, dots in enumerate(braille_number_cells(str(num))):
+            kv, kf = create_braille_cell_dots(
+                dots, x + i * BRAILLE_CELL_PITCH_MM, y, base_z)
+            if len(kv) > 0:
+                all_verts.append(kv)
+                all_faces.append(kf + vert_offset)
+                vert_offset += len(kv)
 
-        # Create country name in Braille (truncate to fit)
-        braille_x = x + 18
-        max_chars = 12
+        # Country name in Braille (truncate to fit)
+        braille_x = x + 14
         short_name = name[:max_chars].lower()
 
         braille_verts, braille_faces = create_braille_text(
-            short_name, braille_x, y - 2, base_z,
-            cell_width=2.5, cell_height=4.0, spacing=0.3
+            short_name, braille_x, y, base_z
         )
         if len(braille_verts) > 0:
             all_verts.append(braille_verts)
             all_faces.append(braille_faces + vert_offset)
             vert_offset += len(braille_verts)
 
-    # Texture samples at bottom with Braille labels
-    sample_y = 8
+    # Texture samples: ONE bottom strip, braille label to the RIGHT of each
+    # sample (frees vertical space for the standard-pitch rows above).
+    sample_y = 6
     sample_height = 10
     sample_width = 25
-    label_y = sample_y + sample_height + 3
+    label_y = sample_y + 1
 
     # 1. Water sample (sinusoidal waves like on map) + label "sea"
     water_x = 10
     wave_segments = 20
     for wave_i in range(3):
         wave_base_y = sample_y + wave_i * 3.5
-        # Create sinusoidal wave segments
         for seg in range(wave_segments):
             x1 = water_x + seg * (sample_width / wave_segments)
             x2 = water_x + (seg + 1) * (sample_width / wave_segments)
-            # Sinusoidal offset in Y
             y1 = wave_base_y + 0.8 * np.sin(seg * 2 * np.pi / 5)
             y2 = wave_base_y + 0.8 * np.sin((seg + 1) * 2 * np.pi / 5)
             wave_verts, wave_faces = create_segment_box(
@@ -1144,44 +1362,49 @@ def create_legend_card(number_legend):
                 all_verts.append(wave_verts)
                 all_faces.append(wave_faces + vert_offset)
                 vert_offset += len(wave_verts)
-    # Label: "sea"
-    lbl_verts, lbl_faces = create_braille_text("sea", water_x, label_y, base_z)
+    lbl_verts, lbl_faces = create_braille_text("sea", water_x + sample_width + 3,
+                                               label_y, base_z)
     if len(lbl_verts) > 0:
         all_verts.append(lbl_verts)
         all_faces.append(lbl_faces + vert_offset)
         vert_offset += len(lbl_verts)
 
-    # 2. Border sample (wall) + label "border".
+    # 2. Border sample (ridge) + label "border".
     # Height = BOUNDARY_RELIEF_MM so the sample feels like the ACTUAL map
     # border (a low ridge over local relief), not the legacy 4.5 mm wall.
-    border_x = 70
+    border_x = 78
     border_verts, border_faces = create_segment_box(
-        border_x + sample_width/2, sample_y, border_x + sample_width/2, sample_y + sample_height,
+        border_x, sample_y, border_x, sample_y + sample_height,
         base_z, BOUNDARY_RELIEF_MM, BOUNDARY_WIDTH_MM
     )
     if len(border_verts) > 0:
         all_verts.append(border_verts)
         all_faces.append(border_faces + vert_offset)
         vert_offset += len(border_verts)
-    # Label: "border"
-    lbl_verts, lbl_faces = create_braille_text("border", border_x, label_y, base_z)
+    lbl_verts, lbl_faces = create_braille_text("border", border_x + 5,
+                                               label_y, base_z)
     if len(lbl_verts) > 0:
         all_verts.append(lbl_verts)
         all_faces.append(lbl_faces + vert_offset)
         vert_offset += len(lbl_verts)
 
-    # 3. Capital sample (bump) + label "city"
-    cap_x = 140
-    cap_verts, cap_faces = create_capital_bump(
-        cap_x, sample_y + sample_height/2, base_z,
-        CAPITAL_DIAMETER_MM / 2, CAPITAL_HEIGHT_MM
-    )
-    if len(cap_verts) > 0:
-        all_verts.append(cap_verts)
-        all_faces.append(cap_faces + vert_offset)
-        vert_offset += len(cap_verts)
-    # Label: "city"
-    lbl_verts, lbl_faces = create_braille_text("city", cap_x - 5, label_y, base_z)
+    # 3. Anchor-ridge sample + label "key": the ridge that marks the left edge
+    # and row extent of every number label on the map (capital bumps were
+    # removed 2026-08-05, so the old "city" sample went with them).
+    key_x = 150
+    kv, kf = create_braille_anchor(key_x, sample_y + sample_height / 2, base_z)
+    if len(kv) > 0:
+        all_verts.append(kv)
+        all_faces.append(kf + vert_offset)
+        vert_offset += len(kv)
+    kv, kf = create_braille_cell_dots(
+        (1, 2, 3), key_x + ANCHOR_LEAD_MM + BRAILLE_DOT_RADIUS_MM,
+        sample_y + sample_height / 2 - BRAILLE_DOT_PITCH_MM, base_z)
+    if len(kv) > 0:
+        all_verts.append(kv)
+        all_faces.append(kf + vert_offset)
+        vert_offset += len(kv)
+    lbl_verts, lbl_faces = create_braille_text("key", key_x + 14, label_y, base_z)
     if len(lbl_verts) > 0:
         all_verts.append(lbl_verts)
         all_faces.append(lbl_faces + vert_offset)
@@ -1194,58 +1417,89 @@ def create_legend_card(number_legend):
     return vertices, faces
 
 
-def create_tab(x, y, direction):
-    """Create a puzzle tab (выступ) that extends from the side wall of the base.
-
-    Tab is positioned in the BOTTOM part of base (z from -BASE to -BASE+TAB_HEIGHT).
-    """
-    hw = TAB_WIDTH_MM / 2
-    z_bottom = -BASE_THICKNESS_MM                      # -6
-    z_top = -BASE_THICKNESS_MM + TAB_HEIGHT_MM         # -3
-
-    td = TAB_DEPTH_MM
-
-    if direction == 'right':
-        verts = [
-            [x, y - hw, z_bottom], [x + td, y - hw, z_bottom],
-            [x + td, y + hw, z_bottom], [x, y + hw, z_bottom],
-            [x, y - hw, z_top], [x + td, y - hw, z_top],
-            [x + td, y + hw, z_top], [x, y + hw, z_top],
-        ]
-    elif direction == 'left':
-        verts = [
-            [x - td, y - hw, z_bottom], [x, y - hw, z_bottom],
-            [x, y + hw, z_bottom], [x - td, y + hw, z_bottom],
-            [x - td, y - hw, z_top], [x, y - hw, z_top],
-            [x, y + hw, z_top], [x - td, y + hw, z_top],
-        ]
-    elif direction == 'up':
-        verts = [
-            [x - hw, y, z_bottom], [x + hw, y, z_bottom],
-            [x + hw, y + td, z_bottom], [x - hw, y + td, z_bottom],
-            [x - hw, y, z_top], [x + hw, y, z_top],
-            [x + hw, y + td, z_top], [x - hw, y + td, z_top],
-        ]
-    elif direction == 'down':
-        verts = [
-            [x - hw, y - td, z_bottom], [x + hw, y - td, z_bottom],
-            [x + hw, y, z_bottom], [x - hw, y, z_bottom],
-            [x - hw, y - td, z_top], [x + hw, y - td, z_top],
-            [x + hw, y, z_top], [x - hw, y, z_top],
-        ]
+def _trapezoid_prism(x, y, direction, neck_hw, head_hw, depth, z_bottom, z_top,
+                     back=0.0):
+    """Prism whose XY section is a symmetric trapezoid: neck (width 2*neck_hw)
+    at the card edge (x, y), head (width 2*head_hw) `depth` mm outward along
+    `direction`. `back` extends the neck side INWARD past the edge (used by the
+    slot cutter for a clean boolean cut through the wall)."""
+    if direction == 'right':    # outward = +x
+        base = [(x - back, y - neck_hw), (x + depth, y - head_hw),
+                (x + depth, y + head_hw), (x - back, y + neck_hw)]
+    elif direction == 'left':   # outward = -x
+        base = [(x - depth, y - head_hw), (x + back, y - neck_hw),
+                (x + back, y + neck_hw), (x - depth, y + head_hw)]
+    elif direction == 'up':     # outward = +y
+        base = [(x - neck_hw, y - back), (x + neck_hw, y - back),
+                (x + head_hw, y + depth), (x - head_hw, y + depth)]
+    elif direction == 'down':   # outward = -y
+        base = [(x - head_hw, y - depth), (x + head_hw, y - depth),
+                (x + neck_hw, y + back), (x - neck_hw, y + back)]
     else:
         return np.array([]), np.array([])
 
+    verts = [[px, py, z_bottom] for px, py in base] + \
+            [[px, py, z_top] for px, py in base]
     faces = [
         [0, 2, 1], [0, 3, 2],  # bottom
         [4, 5, 6], [4, 6, 7],  # top
-        [0, 1, 5], [0, 5, 4],  # front
-        [2, 3, 7], [2, 7, 6],  # back
-        [0, 4, 7], [0, 7, 3],  # left
-        [1, 2, 6], [1, 6, 5],  # right
+        [0, 1, 5], [0, 5, 4],
+        [1, 2, 6], [1, 6, 5],
+        [2, 3, 7], [2, 7, 6],
+        [3, 0, 4], [3, 4, 7],
     ]
+    return np.array(verts, dtype=float), np.array(faces)
 
-    return np.array(verts), np.array(faces)
+
+def create_tab(x, y, direction):
+    """Create a DOVETAIL puzzle tab extending from the side wall of the base.
+
+    Trapezoid in plan: neck TAB_WIDTH_MM at the card edge, head
+    TAB_HEAD_WIDTH_MM at the tip — the mating card is lowered onto it from
+    above and then cannot slide apart sideways (2026-08-04; the old
+    rectangular tabs let the assembled map drift apart).
+    Tab occupies the BOTTOM part of base (z from -BASE to -BASE+TAB_HEIGHT).
+    """
+    z_bottom = -BASE_THICKNESS_MM                      # -6
+    z_top = -BASE_THICKNESS_MM + TAB_HEIGHT_MM         # -3
+    return _trapezoid_prism(x, y, direction,
+                            neck_hw=TAB_WIDTH_MM / 2,
+                            head_hw=TAB_HEAD_WIDTH_MM / 2,
+                            depth=TAB_DEPTH_MM,
+                            z_bottom=z_bottom, z_top=z_top)
+
+
+def create_slot_cutter(x, y, direction):
+    """Mesh to boolean-SUBTRACT from the receiving card: the dovetail tab
+    offset so every face clears the tab by SLOT_CLEARANCE_MM/2 measured
+    PERPENDICULAR to that face, extended 1 mm inward past the card edge for a
+    clean through-wall cut.
+
+    The slot's slanted flanks are kept PARALLEL to the tab's flanks: a naive
+    "+clearance/2 on each half-width" pivots the flank around the back plane
+    and the gap collapses to ~0.12 mm at the head corner — the load-bearing
+    dovetail face — which jams on FDM over-extrusion (review 2026-08-04).
+
+    `direction` is where the mating tab points INTO this card: a card whose
+    LEFT edge receives a neighbour's 'right' tab gets a 'right' cutter at
+    (0, y). The slot stays open at the card bottom, so assembly is: lay one
+    card flat, lower the neighbour onto the tab from above.
+    """
+    import math
+    z_bottom = -BASE_THICKNESS_MM - 0.01
+    z_top = -BASE_THICKNESS_MM + TAB_HEIGHT_MM + SLOT_Z_CLEARANCE_MM
+    back = 1.0
+    m = (TAB_HEAD_WIDTH_MM - TAB_WIDTH_MM) / 2 / TAB_DEPTH_MM  # flank slope
+    c_perp = (SLOT_CLEARANCE_MM / 2) / math.cos(math.atan(m))  # width offset
+    depth = TAB_DEPTH_MM + SLOT_CLEARANCE_MM / 2
+    # tab flank: hw(t) = TAB_WIDTH/2 + m*t; cutter flank = parallel + c_perp,
+    # evaluated at the cutter's own end planes t=-back and t=depth.
+    return _trapezoid_prism(x, y, direction,
+                            neck_hw=TAB_WIDTH_MM / 2 - m * back + c_perp,
+                            head_hw=TAB_WIDTH_MM / 2 + m * depth + c_perp,
+                            depth=depth,
+                            z_bottom=z_bottom, z_top=z_top,
+                            back=back)
 
 
 def get_slot_bounds(x, y, direction):
@@ -1853,4 +2107,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Legacy path DISABLED (2026-08-04): it pairs the new 13 mm dovetail tabs
+    # with the old 8.5 mm rectangular slots (get_slot_bounds/create_slot_walls)
+    # — the printed cards physically cannot be assembled. The supported
+    # pipeline is build_all.py, which cuts cards with boolean split_cards +
+    # create_slot_cutter.
+    print("This legacy entry point is disabled: it produces cards whose")
+    print("dovetail tabs do not match its old rectangular slots.")
+    print("Use:  python core/build_all.py   (run from the repo root)")

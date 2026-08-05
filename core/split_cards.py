@@ -5,9 +5,12 @@ ops (not face-filtering). Each card stays a watertight two-manifold:
 
   card_i = (full_map  ∩  card_box_i)  ∪  tabs_i  −  slots_i
 
-Puzzle scheme (tabs/slots, clearances) is the same as the generator:
+Puzzle scheme:
   card0 bottom-left, card1 bottom-right, card2 top-left, card3 top-right
-  tabs in the bottom half of the base (z ∈ [-6,-3]); slots are the mating holes.
+  DOVETAIL tabs in the bottom half of the base (z ∈ [-6,-3]); slots are the
+  mating trapezoid holes, open at the card bottom. Assembly: lay a card flat,
+  lower its neighbour onto the tab from above — the dovetail then blocks any
+  sideways pull (2026-08-04; rectangular tabs used to slide apart).
 Cards are re-centred to local origin (0,0) on export, matching the originals.
 """
 import sys
@@ -17,11 +20,10 @@ import numpy as np
 import trimesh
 
 from constants import (CARD_WIDTH_MM as CW, CARD_HEIGHT_MM as CH,
-                       BASE_THICKNESS_MM, TAB_HEIGHT_MM)
-from generate import create_tab, get_slot_regions_for_card
+                       BASE_THICKNESS_MM)
+from generate import create_tab, create_slot_cutter
 
 Z_LO, Z_HI = -BASE_THICKNESS_MM - 1.0, 12.0          # full vertical span + margin
-SLOT_Z = (-BASE_THICKNESS_MM, -BASE_THICKNESS_MM + TAB_HEIGHT_MM)  # (-6, -3)
 
 # card_idx -> (origin_x, origin_y) of its 200x160 cell in the full map
 ORIGINS = [(0, 0), (CW, 0), (0, CH), (CW, CH)]
@@ -32,6 +34,16 @@ TABS = {
     1: [(CW / 2, CH, 'up')],
     2: [(CW, CH / 2, 'right')],
     3: [],
+}
+
+# dovetail slots per card, in CARD-LOCAL coords: (x, y, direction) where
+# direction is the way the NEIGHBOUR's tab points INTO this card.
+# Mirrors TABS: card0.right@(CW,CH/2) -> card1 'right'@(0,CH/2), etc.
+SLOTS = {
+    0: [],
+    1: [(0, CH / 2, 'right')],                       # from card 0
+    2: [(CW / 2, 0, 'up')],                          # from card 0
+    3: [(0, CH / 2, 'right'), (CW / 2, 0, 'up')],    # from cards 2 and 1
 }
 
 
@@ -65,23 +77,15 @@ def split_cards(full_map_path, out_dir, verbose=True):
             trimesh.repair.fix_normals(tab)
             card = trimesh.boolean.union([card, tab], engine='manifold')
 
-        # slots (mating holes -> difference). Extend 1 mm past the card edge
-        # so the cut is clean through the wall.
-        for slot in get_slot_regions_for_card(idx, CW, CH):
-            if slot is None:
-                continue
-            x0, x1, y0, y1 = slot
-            # widen the open side outward beyond the card boundary
-            if x0 < 0.1:
-                x0 -= 1.0
-            if y0 < 0.1:
-                y0 -= 1.0
-            if x1 > CW - 0.1:
-                x1 += 1.0
-            if y1 > CH - 0.1:
-                y1 += 1.0
-            sbox = _box(ox + x0, ox + x1, oy + y0, oy + y1, SLOT_Z[0] - 0.01, SLOT_Z[1])
-            card = trimesh.boolean.difference([card, sbox], engine='manifold')
+        # dovetail slots (mating holes -> difference). The cutter is the tab
+        # grown by the clearance and extended 1 mm past the card edge, so the
+        # cut is clean through the wall.
+        for (lx, ly, d) in SLOTS[idx]:
+            v, f = create_slot_cutter(lx, ly, d)
+            cutter = trimesh.Trimesh(vertices=np.asarray(v, float), faces=np.asarray(f), process=True)
+            cutter.apply_translation([ox, oy, 0])
+            trimesh.repair.fix_normals(cutter)
+            card = trimesh.boolean.difference([card, cutter], engine='manifold')
 
         if isinstance(card, (list, tuple)):
             card = trimesh.util.concatenate(card)

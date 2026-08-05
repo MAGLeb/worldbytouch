@@ -48,7 +48,15 @@ def build(out_dir="data/output/printready", embed=EMBED_MM, verbose=True):
     Z = Z + G.create_wave_pattern(X, Y, water_mask)
 
     terrain_v, terrain_f = G.create_terrain_mesh(X, Y, Z)
-    cap_v, cap_f, number_legend = G.create_capitals_mesh(X, Y, Z, gdf)
+    cap_v, cap_f, number_legend, placements = G.create_country_labels_mesh(
+        X, Y, Z, gdf, verbose=verbose)
+
+    # dump for verify_labels.py — checking placement against a recomputation
+    # would just duplicate (and drift from) the placement logic
+    import json
+    (out_dir / "label_placements.json").write_text(json.dumps(
+        [{"n": n, "iso": i, "x": x, "y": y, "clear": c}
+         for n, i, x, y, c in placements], indent=1))
 
     # --- assemble solids: terrain (no sink) + features (embedded) + walls ---
     solids = []

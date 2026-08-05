@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="World by Touch">
+  <rect width="64" height="64" rx="12" fill="#1f5f4b"/>
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round">
+    <path d="M12 22h18"/>
+    <path d="M12 34h30"/>
+    <path d="M12 46h22"/>
+  </g>
+  <g fill="#ffffff">
+    <circle cx="44" cy="22" r="3.5"/>
+    <circle cx="54" cy="22" r="3.5"/>
+    <circle cx="54" cy="34" r="3.5"/>
+    <circle cx="46" cy="46" r="3.5"/>
+  </g>
+</svg>

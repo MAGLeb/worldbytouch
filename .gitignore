@@ -1,4 +1,16 @@
 __pycache__/
 .venv/
 data/
+promo/
 CURRENT_WORK.md
+.claude/
+.DS_Store
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# photographs of people – live only on the site, never on GitHub
+site/assets/reader.jpg
+site/assets/author.jpg
