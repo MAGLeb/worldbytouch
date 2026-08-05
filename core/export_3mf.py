@@ -6,7 +6,7 @@ Build the MakerWorld upload bundle into data/output/makerworld/:
   * the same cards as STLs renamed to human-readable names (MakerWorld shows
     file names to visitors).
 Both are generated artefacts, so they live under data/ with the rest of the
-build output (gitignored) — the upload copy text lives in MAKERWORLD.md.
+build output (gitignored) — the upload copy text lives in docs/MAKERWORLD.md.
 
 Format taken from the BambuStudio source (src/libslic3r/Format/bbs_3mf.cpp and
 PartPlate.cpp), not from guesswork:
@@ -172,7 +172,7 @@ def build(src_dir, out_dir, verbose=True):
         shutil.copyfile(src_dir / fname, out_dir / f"{name}.stl")
     if verbose:
         print(f"-> {len(CARDS)} STLs renamed for upload")
-        print(f"bundle: {out_dir}/  (copy text: MAKERWORLD.md)")
+        print(f"bundle: {out_dir}/  (copy text: docs/MAKERWORLD.md)")
     return out_path
 
 

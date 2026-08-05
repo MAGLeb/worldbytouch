@@ -1,7 +1,7 @@
 # worldbytouch.com
 
 Static site for World by Touch – tactile 3D-printed maps. Deployed on Cloudflare Pages.
-Accounts, domain, mail and what all of it costs: `INFRA.md`.
+Accounts, domain, mail and what all of it costs: `docs/INFRA.md`.
 
 ```
 site/index.html      English
@@ -9,14 +9,14 @@ site/sr/index.html   Serbian (Gajica latin)
 site/style.css       shared, light + dark
 site/favicon.svg
 site/assets/         photos (hand-picked crops) and renders (core/render_site_assets.py)
-content/             source material for the copy, not published
+docs/content/        source material for the copy, not published
 ```
 
 No build step, no JavaScript, no external requests. The whole site works offline from the
 folder.
 
 `site/` is the publish root: everything inside it is served. Nothing that is not meant to be
-public may live there. That is why `.env`, `content/` and this file sit outside it.
+public may live there. That is why `.env` and everything under `docs/` sit outside it.
 
 ## Deploy
 
@@ -53,6 +53,8 @@ python3 -m http.server 8080 --directory site
   Every camera the site uses lives in that script. Re-render after any geometry change, or
   the page starts describing files that no longer exist. The photographs are not produced
   by it; their sources and crops are listed in its docstring.
+- `README.md` embeds six of these renders straight from `site/assets/` instead of keeping a
+  second copy. Renaming or deleting one breaks the README too, so re-render in place.
 - The renders lean on ambient occlusion (`render_previews._ssao`). Cream filament on a light
   backdrop hides its own relief, and without the contact shadow a border ridge, a braille
   dome and the flat plate all shade alike: the picture goes pale and says nothing. Keep it on.

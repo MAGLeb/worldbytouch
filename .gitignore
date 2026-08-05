@@ -1,7 +1,6 @@
 __pycache__/
 .venv/
 data/
-promo/
 CURRENT_WORK.md
 .claude/
 .DS_Store
@@ -15,11 +14,11 @@ CURRENT_WORK.md
 site/assets/reader.jpg
 site/assets/author.jpg
 
-# working material for the site – stays local, never published
-content/
+# working material behind the site – stays local, never published
+docs/content/
+
+# ops notes: account ids, zone id, where to log in – local only
+docs/INFRA.md
 
 # wrangler's local cache – account id and account name, no reason to publish
 .wrangler/
-
-# ops notes: account ids, zone id, where to log in – local only
-INFRA.md
