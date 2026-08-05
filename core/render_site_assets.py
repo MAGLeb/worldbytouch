@@ -12,7 +12,8 @@ instead of in a throwaway script.
 Needs a display (X11) or vtk-osmesa; `xvfb-run -a` works headless.
 
 The photographs in `site/assets/` are NOT produced here. They are hand-picked
-crops of `data/photoes/` (gitignored, and two of them are pictures of people):
+crops of `data/photoes/` (gitignored, and two of them are pictures of people),
+each put through `photo_pass()` below so the five of them read as one set:
 
     hands_map.jpg           photo_1_2026-07-21   hero, hands on the assembled map
     reader.jpg              photo_2_2026-07-21   the friend reading it
@@ -33,6 +34,28 @@ from constants import CARD_WIDTH_MM as CW, CARD_HEIGHT_MM as CH
 SHOT_SIZE = (1600, 1200)
 # the backdrop, as RGB, so the content-crop probe knows what is not the object
 BG = tuple(int(R.BG.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def photo_pass(im, target_lum=0.47, wb=0.45, pull=0.55, sat=0.95):
+    """Bring one photograph into line with the other four.
+
+    They were shot on different days on whatever surface was there: a yellow
+    blanket, dark parquet, a white wall. Documentary photographs, which is the
+    point, but side by side on one page the casts made the same grey plate look
+    like three different products. This pulls each frame part of the way towards
+    grey-world white balance and towards a common exposure, and takes a little
+    saturation out. Partial on purpose: at full strength the blanket goes grey
+    and the room stops being a room.
+    """
+    a = np.asarray(im.convert("RGB")).astype(float) / 255
+    gain = (a.reshape(-1, 3).mean(axis=0).mean() / a.reshape(-1, 3).mean(axis=0)) ** wb
+    a = np.clip(a * gain, 0, 1)
+    lum = 0.2126 * a[:, :, 0] + 0.7152 * a[:, :, 1] + 0.0722 * a[:, :, 2]
+    g = 1 + (np.log(target_lum) / np.log(lum.mean()) - 1) * pull
+    a = np.clip(a, 1e-6, 1) ** g
+    lum = (0.2126 * a[:, :, 0] + 0.7152 * a[:, :, 1] + 0.0722 * a[:, :, 2])[:, :, None]
+    a = np.clip(lum + (a - lum) * sat, 0, 1)
+    return Image.fromarray((a * 255 + 0.5).astype(np.uint8))
 
 
 def _shot(meshes, center, direction, half_h, size=SHOT_SIZE):

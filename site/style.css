@@ -10,7 +10,6 @@
   --accent-hover: #0e3c2f;
   --accent-ink: #ffffff;
   --focus: #b8460e;
-  --scroll-shadow: rgba(29, 33, 36, .34);
   --shadow: 0 1px 2px rgba(29, 33, 36, .06), 0 8px 24px rgba(29, 33, 36, .08);
   --shadow-lg: 0 2px 4px rgba(29, 33, 36, .08), 0 18px 48px rgba(29, 33, 36, .16);
   --max: 68rem;
@@ -31,7 +30,6 @@
     --accent-hover: #8fe0c3;
     --accent-ink: #0c2019;
     --focus: #ffb26b;
-    --scroll-shadow: rgba(0, 0, 0, .72);
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
     --shadow-lg: 0 2px 4px rgba(0, 0, 0, .5), 0 18px 48px rgba(0, 0, 0, .5);
   }
@@ -129,6 +127,29 @@ section { padding: clamp(3.5rem, 7vw, 6rem) 0; }
 section.alt { background: var(--bg-alt); }
 section.tint { background: var(--surface); }
 
+/* The printed map is graphite with white relief. One band on the page is the
+   object's own colours: every token is re-pointed, so the lists, figures and
+   captions inside need no special cases, and the pale renders sit on it the way
+   the plates sit on a table. One band only, or it stops being a moment. */
+section.slab {
+  --bg-alt: #23282c;
+  --surface: #262c31;
+  --ink: #f3f0e9;
+  --ink-soft: #b9c0c7;
+  --line: #3b444c;
+  --slate: #9aa3a2;
+  --accent: #6fd0ad;
+  --accent-hover: #8fe0c3;
+  --accent-ink: #0c2019;
+  --focus: #ffb26b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 8px 24px rgba(0, 0, 0, .40);
+  --shadow-lg: 0 2px 4px rgba(0, 0, 0, .5), 0 18px 48px rgba(0, 0, 0, .55);
+  background: #1a1e21;
+  color: var(--ink);
+  border-top: 1px solid #2c3237;
+  border-bottom: 1px solid #2c3237;
+}
+
 .eyebrow {
   font-family: var(--sans); font-size: .8125rem; font-weight: 750;
   letter-spacing: .16em; text-transform: uppercase;
@@ -167,7 +188,9 @@ section.tint { background: var(--surface); }
   align-items: center;
 }
 @media (min-width: 60rem) {
-  .hero-grid { grid-template-columns: 1.05fr .95fr; }
+  /* the picture gets the larger half: it is the product shot, and it carries
+     the scale of the thing better than any sentence in the column beside it */
+  .hero-grid { grid-template-columns: 1fr 1.15fr; }
 }
 .hero .lede {
   font-size: clamp(1.15rem, 1.9vw, 1.375rem);
@@ -176,9 +199,8 @@ section.tint { background: var(--surface); }
 .hero-figure { margin: 0; }
 .hero-figure img {
   width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
-  border-radius: 14px; border: 1px solid var(--line);
+  border-radius: 12px; border: 1px solid var(--line);
   box-shadow: var(--shadow-lg);
-  transform: rotate(-1deg);
 }
 .hero-figure figcaption { margin-top: 1.4rem; }
 
@@ -192,8 +214,24 @@ section.tint { background: var(--surface); }
 }
 .btn:hover { background: var(--accent-hover); transform: translateY(-1px); text-decoration: none; }
 .btn:active { transform: translateY(0); }
-.btn-row { display: flex; flex-wrap: wrap; gap: 1rem 1.25rem; align-items: center; }
-.btn-note { font-family: var(--sans); font-size: .95rem; color: var(--ink-soft); max-width: 20em; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+/* second action, same box, no fill: it must not compete with the quote button */
+.btn-ghost {
+  background: transparent; color: var(--accent); box-shadow: none;
+  border: 2px solid var(--accent);
+  padding: calc(.95rem - 2px) calc(1.6rem - 2px);
+}
+.btn-ghost:hover { background: var(--accent); color: var(--accent-ink); }
+
+/* the three things a buyer wants before writing: price, language, how fast */
+.hero-facts {
+  list-style: none; padding: 0; margin: 1.6rem 0 0;
+  display: flex; flex-wrap: wrap; row-gap: .25rem;
+  font-family: var(--sans); font-size: .9375rem; color: var(--ink-soft);
+}
+/* separator after, not before: when the strip wraps, a leading dot on the
+   second line reads as a typo */
+.hero-facts li:not(:last-child)::after { content: "·"; padding: 0 .6rem; opacity: .55; }
 
 /* ---------- stats ---------- */
 
@@ -203,7 +241,7 @@ section.tint { background: var(--surface); }
 }
 .stat-grid > div {
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: 10px; padding: 1.35rem 1.25rem; box-shadow: var(--shadow);
+  border-radius: 12px; padding: 1.35rem 1.25rem; box-shadow: var(--shadow);
 }
 .stat-grid dt {
   font-family: var(--sans); font-weight: 800;
@@ -268,7 +306,7 @@ figcaption {
 .gallery figure { margin: 0; }
 .gallery img {
   width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center;
-  border-radius: 10px; border: 1px solid var(--line); box-shadow: var(--shadow);
+  border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow);
   background: var(--surface);
 }
 
@@ -284,48 +322,8 @@ figcaption {
 .compare figure { margin: 0; }
 .compare img {
   width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
-  border-radius: 10px; border: 1px solid var(--line); box-shadow: var(--shadow);
+  border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow);
   background: var(--surface);
-}
-
-/* ---------- what his hands found ---------- */
-
-ol.findings {
-  counter-reset: fnd; list-style: none; padding: 0;
-  margin: 2.25rem 0 2.5rem; display: grid; gap: 1.75rem;
-}
-@media (min-width: 58rem) {
-  ol.findings { grid-template-columns: 1fr 1fr; gap: 2rem 2.5rem; }
-}
-ol.findings li {
-  counter-increment: fnd;
-  border-top: 2px solid var(--ink); padding-top: 1rem;
-}
-ol.findings li::before {
-  content: counter(fnd);
-  display: block; font-family: var(--sans); font-weight: 800;
-  font-size: .8125rem; letter-spacing: .16em; color: var(--slate);
-  margin-bottom: .6rem;
-}
-ol.findings strong {
-  display: block; font-family: var(--sans); font-weight: 750;
-  font-size: 1.1875rem; line-height: 1.25; letter-spacing: -.015em;
-  margin-bottom: .5rem;
-}
-ol.findings span {
-  display: block; font-family: var(--sans);
-  font-size: .9875rem; line-height: 1.6; color: var(--ink-soft);
-}
-
-/* the marker is a braille dot, the thing the whole rebuild was about */
-ul.fixes { list-style: none; padding: 0; margin: 0 0 2.25rem; display: grid; gap: 1rem; }
-ul.fixes li {
-  position: relative; padding-left: 1.9rem;
-  font-family: var(--sans); font-size: 1rem; line-height: 1.6; color: var(--ink-soft);
-}
-ul.fixes li::before {
-  content: ""; position: absolute; left: .4rem; top: .58em;
-  width: .55rem; height: .55rem; border-radius: 50%; background: var(--accent);
 }
 
 /* ---------- floor-plan schematic ---------- */
@@ -350,7 +348,7 @@ ul.links {
   list-style: none; padding: 0; margin: 1.75rem 0 0;
   border-top: 1px solid var(--line);
 }
-.split.top > ul.links { margin-top: .3rem; }
+.split + ul.links { margin-top: 2.75rem; }
 ul.links li { border-bottom: 1px solid var(--line); }
 ul.links a {
   display: flex; flex-wrap: wrap; gap: .15rem 1.25rem;
@@ -423,45 +421,67 @@ ol.steps span { font-family: var(--sans); color: var(--ink-soft); font-size: .98
 .price .amount {
   font-family: var(--sans); font-weight: 800;
   font-size: clamp(1.9rem, 4vw, 2.5rem); letter-spacing: -.03em;
-  color: var(--accent); display: block; line-height: 1.05;
+  color: var(--accent); display: block; line-height: 1.05; margin: 0 0 1.15rem;
 }
 @media (prefers-color-scheme: dark) { .price .amount { color: var(--accent-hover); } }
-.price h3 { margin: .65rem 0 .75rem; font-size: 1.25rem; }
+.price h3 {
+  margin: 0 0 .4rem; font-size: .8125rem; font-weight: 750;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--slate);
+}
+.price-spec {
+  list-style: none; padding: 0; margin: 0 0 1.35rem; display: grid; gap: .55rem;
+  font-family: var(--sans); font-size: .9875rem; line-height: 1.5; color: var(--ink-soft);
+}
+.price-spec li { position: relative; padding-left: 1.35rem; }
+.price-spec li::before {
+  content: ""; position: absolute; left: .05rem; top: .55em;
+  width: .5rem; height: .5rem; border-radius: 50%; background: var(--accent);
+}
 .price p { font-family: var(--sans); font-size: .9875rem; line-height: 1.6; color: var(--ink-soft); }
 .price p:last-child { margin-bottom: 0; }
 /* margin-top:auto pins both cards' links to the same baseline, whatever the copy above */
-.price .price-cta { margin: auto 0 0; padding-top: 1.15rem; font-size: 1rem; font-weight: 650; }
+.price .price-cta { margin: auto 0 0; padding-top: 1.35rem; }
 
-/* ---------- table ---------- */
+/* ---------- what the hand feels ---------- */
 
-/* Below ~28rem the table scrolls sideways, and a cut-off column with no visible
-   scrollbar reads as broken. These four backgrounds are the classic pure-CSS
-   scroll shadow: the `local` covers ride with the content, the `scroll` shadows
-   stay put, so a shadow shows only on the edge that still has table behind it. */
-.table-scroll {
-  overflow-x: auto; border-radius: 10px; border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  background-color: var(--surface);
-  background-image:
-    linear-gradient(to right, var(--surface) 40%, transparent),
-    linear-gradient(to left, var(--surface) 40%, transparent),
-    radial-gradient(farthest-side at 0 50%, var(--scroll-shadow), transparent),
-    radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent);
-  background-position: 0 0, 100% 0, 0 0, 100% 0;
-  background-size: 2.5rem 100%, 2.5rem 100%, 1.1rem 100%, 1.1rem 100%;
-  background-repeat: no-repeat;
-  background-attachment: local, local, scroll, scroll;
+/* Was a two-column table, which on a 320 px screen could only scroll sideways.
+   Term and description is what this content actually is. */
+dl.feels { margin: 2.25rem 0 0; display: grid; grid-template-columns: 1fr; }
+dl.feels > div {
+  display: grid; gap: .3rem 2rem; grid-template-columns: 1fr;
+  border-top: 1px solid var(--line); padding: .95rem 0 1rem;
 }
-.tactile { width: 100%; border-collapse: collapse; font-size: 1rem; min-width: 28rem; }
-.tactile th, .tactile td { text-align: left; padding: .85rem 1.15rem; border-bottom: 1px solid var(--line); }
-.tactile tbody tr:last-child th, .tactile tbody tr:last-child td { border-bottom: 0; }
-.tactile th {
-  font-family: var(--sans); font-size: .8125rem; font-weight: 750;
+dl.feels > div:last-child { border-bottom: 1px solid var(--line); }
+@media (min-width: 40rem) {
+  dl.feels > div { grid-template-columns: minmax(7rem, 11rem) 1fr; align-items: baseline; }
+}
+dl.feels dt {
+  font-family: var(--sans); font-weight: 700; font-size: .8125rem;
   letter-spacing: .1em; text-transform: uppercase; color: var(--slate);
-  background: var(--bg-alt);
 }
-.tactile td:first-child { font-family: var(--sans); font-weight: 650; font-size: .9875rem; white-space: nowrap; }
-.tactile td:last-child { font-size: 1.0625rem; color: var(--ink-soft); }
+dl.feels dd { margin: 0; font-size: 1.0625rem; line-height: 1.5; color: var(--ink-soft); }
+
+/* ---------- first print / now, pair by pair ---------- */
+
+.rebuilt .lead { font-size: clamp(1.0625rem, 1.7vw, 1.25rem); color: var(--ink-soft); }
+.rebuilt .compare { margin: 2.5rem 0 2.75rem; }
+
+dl.versus { margin: 0 0 2.25rem; display: grid; gap: 1.75rem; grid-template-columns: 1fr; }
+@media (min-width: 52rem) {
+  dl.versus { grid-template-columns: 1fr 1fr; gap: 2rem 2.5rem; }
+}
+dl.versus > div { border-top: 2px solid var(--ink); padding-top: 1rem; }
+dl.versus dt {
+  font-family: var(--sans); font-weight: 750; font-size: 1.125rem;
+  letter-spacing: -.015em; margin-bottom: .8rem;
+}
+dl.versus dd {
+  margin: 0 0 .6rem; font-family: var(--sans);
+  font-size: .9375rem; line-height: 1.55;
+}
+dl.versus dd:last-child { margin-bottom: 0; }
+dl.versus .was { color: var(--ink-soft); }
+dl.versus .now { color: var(--ink); }
 
 /* ---------- closing band ---------- */
 
