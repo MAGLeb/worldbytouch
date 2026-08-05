@@ -21,8 +21,15 @@ public may live there. That is why `.env` and everything under `docs/` sit outsi
 ## Deploy
 
 ```bash
+python tools/stamp_css.py
 wrangler pages deploy site --project-name worldbytouch --branch main
 ```
+
+Stamp first, every time. Cloudflare serves `/style.css` with `max-age=14400`, so
+without the hash in the link a returning visitor can hold four-hour-old CSS against
+new markup: every class added in that release renders unstyled, and nothing on this
+end shows it. `tools/stamp_css.py` writes a hash of the stylesheet into the link in
+both pages, so the URL changes whenever the file does.
 
 Direct upload, not the GitHub integration. `site/assets/reader.jpg` and
 `site/assets/author.jpg` are deliberately gitignored (photographs of people), so a
