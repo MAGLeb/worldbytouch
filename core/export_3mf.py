@@ -144,7 +144,7 @@ def build(src_dir, out_dir, verbose=True):
         '<model unit="millimeter" xml:lang="en-US"'
         ' xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"'
         ' xmlns:BambuStudio="http://schemas.bambulab.com/package/2021">\n'
-        ' <metadata name="Application">blind_map export_3mf.py</metadata>\n'
+        ' <metadata name="Application">worldbytouch export_3mf.py</metadata>\n'
         ' <metadata name="Title">Tactile Braille Map for the Blind:'
         ' Europe &amp; Arabia</metadata>\n'
         ' <metadata name="Designer">Gleb Maksimov</metadata>\n'

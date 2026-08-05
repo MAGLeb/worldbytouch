@@ -120,7 +120,7 @@ self-intersections) for every STL.
 ## Project Structure
 
 ```
-blind_map/
+worldbytouch/
 ├── assets/                    # Images for this README
 ├── core/
 │   ├── config.py              # Map region (bounding box)
@@ -141,10 +141,19 @@ blind_map/
 │   ├── render_previews.py     # Preview renders of the print-ready STLs
 │   ├── render_site_assets.py  # The renders published on worldbytouch.com
 │   └── prepare_data/          # Data download & merge scripts
+├── site/                      # worldbytouch.com – the published site itself
+│   ├── index.html             # English
+│   ├── sr/index.html          # Serbian
+│   ├── style.css · favicon.svg
+│   └── assets/                # Photos and renders used by the pages
+├── content/                   # Source material behind the site, not published
+│   ├── source-material.md     # The friend's response, Reddit history, assets
+│   └── launch-posts.md        # Ready-to-post copy for the announcement round
 ├── data/                      # Not in repo (too large)
 │   ├── input/                 # ETOPO1 elevation grid
 │   ├── countries/             # Downloaded border GeoJSONs
 │   └── output/                # Generated files (printready/, previews/)
+├── MAKERWORLD.md              # The MakerWorld listing text
 ├── requirements.txt
 └── README.md
 ```
