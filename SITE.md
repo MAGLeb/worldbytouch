@@ -3,25 +3,35 @@
 Static site for World by Touch – tactile 3D-printed maps. Deployed on Cloudflare Pages.
 
 ```
-index.html        English
-sr/index.html     Serbian (Gajica latin)
-style.css         shared, light + dark
-favicon.svg
-assets/           photos and renders (copied from the blind_map repo)
+site/index.html      English
+site/sr/index.html   Serbian (Gajica latin)
+site/style.css       shared, light + dark
+site/favicon.svg
+site/assets/         photos and renders, built from data/ by core/render_previews.py
+content/             source material for the copy, not published
 ```
 
 No build step, no JavaScript, no external requests. The whole site works offline from the
 folder.
 
+`site/` is the publish root: everything inside it is served. Nothing that is not meant to be
+public may live there. That is why `.env`, `content/` and this file sit outside it.
+
 ## Deploy
 
-Cloudflare Pages → connect this repository → build command: none, output directory: `/`.
-Every push to `main` redeploys.
+```bash
+wrangler pages deploy site --project-name worldbytouch --branch main
+```
+
+Direct upload, not the GitHub integration. `site/assets/reader.jpg` and
+`site/assets/author.jpg` are deliberately gitignored (photographs of people), so a
+repository-driven build would ship the site with two broken images. Deploy from the working
+copy instead.
 
 ## Local preview
 
 ```bash
-python3 -m http.server 8080
+python3 -m http.server 8080 --directory site
 ```
 
 ## Editing notes
