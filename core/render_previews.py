@@ -3,10 +3,10 @@
 Render preview images of the CURRENT print-ready STLs into
 data/output/previews_v2/.
 
-Needed because every image in the repo (assets/*.jpg renders and previews/)
-predates the v2 geometry rebuild — braille number labels, dome braille dots and
-dovetail tabs are not visible anywhere. These renders show what the published
-files actually produce; the real printed photo stays the gallery cover.
+The photographs in assets/ and on the site are of the first print, which predates
+the v2 rebuild: no braille number labels, no dome dots, no dovetail tabs. These
+renders are the only picture of what the published files actually produce, so
+re-run them after any geometry change. The printed photo stays the gallery cover.
 
 Off-screen rendering via pyvista/VTK; needs a display (X11) or vtk-osmesa.
 """

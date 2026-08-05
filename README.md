@@ -51,6 +51,9 @@ dovetail tabs: lay one card flat, lower its neighbour onto the tab from above �
 assembled, the map cannot slide apart. Legends and alphabet cards come in two languages: English and
 Serbian (Gajica braille, 30 letters including Č Ć Dž Đ Lj Nj Š Ž).
 
+![Render of the legend card: two columns of braille lines, a wave sample for the sea and an anchor-ridge sample in the bottom strip](site/assets/render_legend.jpg)
+![Render of the alphabet card: raised Latin letters, each with its braille cell beside it](site/assets/render_alphabet.jpg)
+
 ![The printed puzzle cards, braille legend and alphabet cards](assets/photo_cards.jpg)
 
 ## What You Get
@@ -66,7 +69,7 @@ Serbian (Gajica braille, 30 letters including Č Ć Dž Đ Lj Nj Š Ž).
 | `card_alphabet.stl` | English braille alphabet learning card (26 letters) |
 | `card_alphabet_sr.stl` | Serbian braille alphabet learning card (30 letters) |
 
-![All nine deliverables](assets/deliverables.png)
+![Render of the eight cards laid out in two rows: four map tiles, two braille legends, two alphabet cards](site/assets/render_files.jpg)
 
 Every output is a single watertight two-manifold, verified by
 `mesh_diagnostics.py` — no inverted normals, internal cavities, or
@@ -83,8 +86,7 @@ inaccessibility. Countries too small to hold a standard braille cell at a
 readable clearance are left unlabelled — a braille cell is far larger than an
 embossed digit, so fewer countries can carry one.
 
-![Serbian braille legend](assets/legend.png)
-![Serbian braille alphabet card](assets/alphabet.png)
+![Render of the Balkans on the map: braille number labels with their anchor ridges sitting inside country outlines, mountains as stepped plateaus](site/assets/render_labels.jpg)
 
 ## How to Build
 
@@ -138,20 +140,17 @@ self-intersections) for every STL.
 | Infill | 15–20% | How solid inside (lower = faster) |
 | Layer height | 0.2 mm | Each terrain plateau is exactly 5 layers |
 
-![Print tiles, top view](assets/assembly.png)
-
 ## Project Structure
 
 ```
 worldbytouch/
-├── assets/                    # Images for this README
 ├── core/
+│   ├── build_all.py           # ENTRY POINT: full print-ready build
 │   ├── config.py              # Map region (bounding box)
 │   ├── constants.py           # All tactile/physical parameters
 │   ├── generate.py            # Mesh building blocks: terrain, water, borders,
-│   │                          #   braille number labels, legend cards
+│   │                          #   braille labels, legend card, dovetail tabs
 │   ├── countries.py           # ISO3 -> country name table (EN/SR) for the labels
-│   ├── build_all.py           # ENTRY POINT: full print-ready build
 │   ├── walls_buffer.py        # Border ridges (buffer + manifold extrude)
 │   ├── split_cards.py         # Boolean split into 4 puzzle cards
 │   ├── heal_mesh.py           # Solid prep + boolean union helpers
@@ -161,7 +160,10 @@ worldbytouch/
 │   ├── serbian_braille.py     # Serbian Latin (Gajica) braille tables
 │   ├── serbian_legend.py      # Serbian legend card
 │   ├── mesh_diagnostics.py    # Print-readiness verification
+│   ├── verify_labels.py       # Every braille label checked against its country
+│   ├── export_3mf.py          # MakerWorld upload bundle (plated .3mf + STLs)
 │   ├── render_previews.py     # Preview renders of the print-ready STLs
+│   ├── render_label_check.py  # Contact sheet of every label, for eyeballing
 │   ├── render_site_assets.py  # The renders published on worldbytouch.com
 │   └── prepare_data/          # Data download & merge scripts
 ├── site/                      # worldbytouch.com – the published site itself
@@ -169,19 +171,22 @@ worldbytouch/
 │   ├── sr/index.html          # Serbian
 │   ├── style.css · favicon.svg
 │   └── assets/                # Photos and renders used by the pages
+├── docs/
+│   ├── SITE.md                # How worldbytouch.com is edited and deployed
+│   └── MAKERWORLD.md          # The MakerWorld listing text
+├── assets/                    # Photos of the first print, used in this README
 ├── data/                      # Not in repo (too large)
 │   ├── input/                 # ETOPO1 elevation grid
 │   ├── countries/             # Downloaded border GeoJSONs
-│   └── output/                # Generated files (printready/, previews/)
-├── SITE.md                    # How worldbytouch.com is edited and deployed
-├── MAKERWORLD.md              # The MakerWorld listing text
+│   └── output/                # Generated files (printready/, previews_v2/,
+│                              #   makerworld/)
 ├── requirements.txt
 └── README.md
 ```
 
 ## Tactile Design
 
-![Assembled tactile map, 3D render](assets/map_3d.png)
+![Render of the Black Sea and the Caucasus: stepped terrain plateaus, border ridges riding over them, wave texture on the sea](site/assets/render_terrain.jpg)
 
 | Parameter | Value |
 |-----------|-------|
@@ -199,6 +204,8 @@ Key design decision: the border is a low ridge riding **on top of the local
 terrain**, not a tall wall at a fixed height. A finger can trace a border
 continuously and still read the relief on both sides of it; tall walls used to
 bury small lowland countries entirely.
+
+![Macro render of one braille label: six dome dots on the plate with the anchor ridge standing to their left](site/assets/render_macro.jpg)
 
 ## Custom maps, collaboration, support
 
