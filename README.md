@@ -1,16 +1,36 @@
-# Blind Map — Tactile Map for the Visually Impaired
+# World by Touch — a tactile map you read with your hands
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![3D Printing](https://img.shields.io/badge/3D%20Printing-PLA-orange.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 A 3D-printable tactile map that helps blind people learn geography by touch.
+Terrain, coastlines and borders are generated from real elevation and border
+data, and country names are written in braille.
 
-If you are interested in a custom tactile map, an educational 3D model,
-collaboration, or supporting future work on accessible 3D-printed materials,
-[get in touch](#custom-maps-collaboration-support).
+**[worldbytouch.com](https://worldbytouch.com)** — the story behind it, what a
+blind reader's hands corrected in it, and how to have one made for another
+region or another language.
 
 ![The printed tactile map with the braille legend and alphabet cards](assets/photo_map.jpg)
+
+## Why this exists
+
+It began as a present for a friend of mine who is blind. The maps he could get
+were either flat printed sheets that tell your fingers almost nothing, or museum
+pieces you cannot take home. So this code turns real elevation and border data
+into something a hand can read, and he got the first print.
+
+Working through that print with him found two defects that were invisible on
+screen, and both shaped the geometry this repository now generates:
+
+| What the first print got wrong | What the code does now |
+|---|---|
+| Country labels were raised Arabic numerals — legible to me, unreadable to him, so every number had to be read out loud by somebody else | Labels are braille numbers (`create_braille_number()` in `core/generate.py`), each with an anchor ridge on its left, so a single cell out on open ground still has a left edge and a baseline |
+| Braille dots used the standard dimensions and printed as sharp points rather than domes, so a fingertip caught the tip and neighbouring dots blurred together | Every dot is a smooth dome on a buried skirt (`create_braille_dot()`): ⌀1.6 mm, 0.8 mm tall, Marburg Medium spacing — 2.5 mm between dots, 6 mm between cells |
+
+The photographs in this README are that first print. The renders are the files as
+they stand now. The two are not the same object, and the difference is the point.
 
 ## What is this?
 
@@ -146,13 +166,11 @@ worldbytouch/
 │   ├── sr/index.html          # Serbian
 │   ├── style.css · favicon.svg
 │   └── assets/                # Photos and renders used by the pages
-├── content/                   # Source material behind the site, not published
-│   ├── source-material.md     # The friend's response, Reddit history, assets
-│   └── launch-posts.md        # Ready-to-post copy for the announcement round
 ├── data/                      # Not in repo (too large)
 │   ├── input/                 # ETOPO1 elevation grid
 │   ├── countries/             # Downloaded border GeoJSONs
 │   └── output/                # Generated files (printready/, previews/)
+├── SITE.md                    # How worldbytouch.com is edited and deployed
 ├── MAKERWORLD.md              # The MakerWorld listing text
 ├── requirements.txt
 └── README.md
@@ -181,19 +199,17 @@ bury small lowland countries entirely.
 
 ## Custom maps, collaboration, support
 
-This project started as a birthday gift for my blind friend. I would be glad if
-it turns out to be useful to other people too.
+The map in this repository is free. Print it, adapt it, give it away.
 
-Get in touch if you want to:
+What you cannot download is a region that does not exist here yet, a city, your
+language, a classroom set or a museum panel — those I make to order:
+**[worldbytouch.com](https://worldbytouch.com)**, or write to
+[glebmaksimov@worldbytouch.com](mailto:glebmaksimov@worldbytouch.com) with the
+region, who will read it and how many copies. A price and a timeline come back,
+usually within two days.
 
-- adapt this map for another region
-- have a custom tactile map made
-- create an educational tactile 3D model
-- use this idea for a school, a museum, an accessibility project, or a gift
-
-I am open to collaborations, custom orders, and paid work around tactile maps
-and educational 3D models. For anything technical — printing problems, build
-errors, ideas — [open an issue](../../issues).
+For anything technical — printing problems, build errors, ideas —
+[open an issue](../../issues).
 
 If you would like to support future work on accessible 3D-printed materials,
 [sponsorship](https://github.com/sponsors/MAGLeb) is welcome.
