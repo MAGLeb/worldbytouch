@@ -72,6 +72,9 @@ Every output is a single watertight two-manifold, verified by
 `mesh_diagnostics.py` — no inverted normals, internal cavities, or
 self-intersections.
 
+Don't want to run any of this? The sliced plates are on MakerWorld:
+[makerworld.com/en/@magleb](https://makerworld.com/en/@magleb).
+
 ## Region Covered
 
 Europe, Middle East, North Africa, Caucasus: 5°–70° E, 12°–55° N.
