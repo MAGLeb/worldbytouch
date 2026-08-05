@@ -72,8 +72,8 @@ Every output is a single watertight two-manifold, verified by
 `mesh_diagnostics.py` — no inverted normals, internal cavities, or
 self-intersections.
 
-Don't want to run any of this? The sliced plates are on MakerWorld:
-[makerworld.com/en/@magleb](https://makerworld.com/en/@magleb).
+Don't want to run any of this? The sliced plates are ready to print on
+[MakerWorld](https://makerworld.com/en/models/3136316-tactile-braille-map-for-the-blind-europe-arabia).
 
 ## Region Covered
 
