@@ -29,7 +29,7 @@ A 3D-printed tactile map that lets a blind person learn the geography of Europe 
 ## Description (основное поле)
 
 ```
-I built this as a birthday gift for my blind friend, so she could learn the geography of Europe with her fingers. It worked — so here are all the files, free.
+I built this as a birthday gift for my blind friend, so he could learn the geography of Europe with his fingers. It worked, so here are all the files, free.
 
 WHAT THE FINGERS FEEL
 • Country borders — a 1.2 mm ridge that rides on top of the local terrain, so you can trace a border continuously and still feel the relief on both sides of it
@@ -56,7 +56,7 @@ WHAT'S INCLUDED
 Every file is a verified watertight two-manifold — no repairs needed before slicing.
 
 DESIGNED WITH, NOT JUST FOR
-The map was tested by a blind reader and rebuilt on her feedback. The dots went from sharp cones at 1.5 mm spacing to standard rounded domes at 2.5 mm. The raised print digits became braille — she reads braille, not the shape of printed numerals. The anchor ridge was added because a lone braille cell in the middle of a country is genuinely ambiguous. The capital-city bumps were removed: they ate the space the number needed and were easy to mistake for a braille dot. The puzzle tabs became dovetails so the assembled map stops drifting apart.
+The map was tested by a blind reader and rebuilt on his feedback. The dots went from sharp cones at 1.5 mm spacing to standard rounded domes at 2.5 mm. The raised print digits became braille: he reads braille, not the shape of printed numerals. The anchor ridge was added because a lone braille cell in the middle of a country is genuinely ambiguous. The capital-city bumps were removed: they ate the space the number needed and were easy to mistake for a braille dot. The puzzle tabs became dovetails so the assembled map stops drifting apart.
 
 3D relief maps have been shown to beat flat tactile graphics for comprehension and recall (Monash University Accessible Graphics group).
 
