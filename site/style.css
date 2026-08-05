@@ -10,8 +10,8 @@
   --accent-hover: #0e3c2f;
   --accent-ink: #ffffff;
   --focus: #b8460e;
-  --shadow: 0 1px 2px rgba(29, 33, 36, .06), 0 8px 24px rgba(29, 33, 36, .08);
-  --shadow-lg: 0 2px 4px rgba(29, 33, 36, .08), 0 18px 48px rgba(29, 33, 36, .16);
+  --shadow: 0 1px 2px rgba(29, 33, 36, .05), 0 5px 14px rgba(29, 33, 36, .06);
+  --shadow-lg: 0 1px 3px rgba(29, 33, 36, .07), 0 12px 30px rgba(29, 33, 36, .11);
   --max: 68rem;
   --sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --serif: "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
@@ -30,8 +30,8 @@
     --accent-hover: #8fe0c3;
     --accent-ink: #0c2019;
     --focus: #ffb26b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
-    --shadow-lg: 0 2px 4px rgba(0, 0, 0, .5), 0 18px 48px rgba(0, 0, 0, .5);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 5px 14px rgba(0, 0, 0, .3);
+    --shadow-lg: 0 1px 3px rgba(0, 0, 0, .45), 0 12px 30px rgba(0, 0, 0, .42);
   }
 }
 
@@ -110,7 +110,25 @@ header.site .wrap {
   background-size: 62% 100%; background-repeat: no-repeat; background-position: 18% 0;
 }
 .brand:hover { text-decoration: underline; text-underline-offset: .35em; }
-nav.lang a { font-family: var(--sans); font-size: .95rem; font-weight: 600; }
+.site-nav { display: none; }
+@media (min-width: 64rem) {
+  .site-nav { display: flex; gap: 1.75rem; margin-left: auto; }
+}
+.site-nav a {
+  font-family: var(--sans); font-size: .9375rem; font-weight: 600;
+  color: var(--ink-soft); text-decoration: none;
+}
+.site-nav a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: .35em; }
+.header-actions { display: flex; align-items: center; gap: .9rem 1.25rem; flex-wrap: wrap; }
+/* below the nav breakpoint the actions wrap onto their own row: spread them
+   across it instead of leaving them stranded against the right edge */
+.header-actions { width: 100%; justify-content: space-between; }
+@media (min-width: 40rem) {
+  .header-actions { width: auto; margin-left: auto; justify-content: flex-end; }
+}
+@media (min-width: 64rem) { .header-actions { margin-left: 0; } }
+.lang-link { font-family: var(--sans); font-size: .9375rem; font-weight: 600; }
+.btn-sm { padding: .5rem 1.05rem; font-size: .9375rem; border-radius: 5px; }
 
 /* ---------- ribbed rule (the sea texture of the map) ---------- */
 
@@ -197,12 +215,38 @@ section.slab {
   color: var(--ink-soft); max-width: 32em; margin-bottom: 2rem;
 }
 .hero-figure { margin: 0; }
-.hero-figure img {
+/* The photograph shows the first print, which is the wrong object to sell on
+   its own: it carries the raised digits that got replaced. The inset puts the
+   current geometry in the same frame, so the hero shows the correction rather
+   than pretending the old set is the product. */
+.hero-shot { position: relative; }
+.hero-shot > img {
   width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
-  border-radius: 12px; border: 1px solid var(--line);
+  border-radius: 8px; border: 1px solid var(--line);
   box-shadow: var(--shadow-lg);
 }
-.hero-figure figcaption { margin-top: 1.4rem; }
+.shot-tag {
+  position: absolute; top: .7rem; left: .7rem;
+  background: var(--ink); color: var(--bg);
+  font-family: var(--sans); font-size: .6875rem; font-weight: 750;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: .3rem .5rem; border-radius: 3px; white-space: nowrap;
+}
+.hero-inset {
+  position: absolute; right: -.5rem; bottom: -1.1rem; width: 42%;
+  display: block; line-height: 0;
+}
+.hero-inset img {
+  width: 100%; border-radius: 6px; border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+}
+.hero-inset .shot-tag { top: .45rem; left: .45rem; font-size: .625rem; padding: .22rem .4rem; }
+/* the current-files chip takes the accent, so the pair reads as before and after */
+.shot-tag-now { background: var(--accent); color: var(--accent-ink); }
+.hero-figure figcaption { margin-top: 2.1rem; }
+@media (max-width: 30rem) {
+  .hero-inset { width: 48%; right: -.25rem; }
+}
 
 /* ---------- buttons ---------- */
 
@@ -232,16 +276,43 @@ section.slab {
 /* separator after, not before: when the strip wraps, a leading dot on the
    second line reads as a typo */
 .hero-facts li:not(:last-child)::after { content: "·"; padding: 0 .6rem; opacity: .55; }
+/* narrow screens cannot hold the strip on one line, and a middot left hanging at
+   a line end reads as a typo: below 34rem it becomes a short dotted list */
+@media (max-width: 34rem) {
+  .hero-facts { display: grid; gap: .4rem; }
+  .hero-facts li { position: relative; padding-left: 1rem; }
+  .hero-facts li:not(:last-child)::after { content: none; }
+  .hero-facts li::before {
+    content: ""; position: absolute; left: 0; top: .6em;
+    width: .35rem; height: .35rem; border-radius: 50%; background: var(--accent);
+  }
+}
 
 /* ---------- stats ---------- */
 
+/* One band with rules, the way a museum label strip is set: four cards with
+   their own backgrounds and shadows read as product metrics, which these are
+   not. They are the dimensions of one object. */
 .stat-grid {
-  display: grid; gap: 1.25rem; margin: 0;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  display: grid; gap: 0; margin: 0;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
-.stat-grid > div {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 12px; padding: 1.35rem 1.25rem; box-shadow: var(--shadow);
+.stat-grid > div { padding: 1.5rem 0 1.6rem; }
+.stat-grid > div + div { border-top: 1px solid var(--line); }
+@media (min-width: 34rem) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .stat-grid > div { padding: 1.5rem 1.75rem 1.6rem; }
+  .stat-grid > div:nth-child(-n+2) { border-top: 0; }
+  .stat-grid > div:nth-child(2n) { border-left: 1px solid var(--line); }
+  .stat-grid > div:nth-child(odd) { padding-left: 0; }
+}
+@media (min-width: 62rem) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  .stat-grid > div { border-top: 0; padding: 1.6rem 1.75rem 1.7rem; }
+  .stat-grid > div + div { border-left: 1px solid var(--line); }
+  .stat-grid > div:first-child { padding-left: 0; }
+  .stat-grid > div:last-child { padding-right: 0; }
 }
 .stat-grid dt {
   font-family: var(--sans); font-weight: 800;
@@ -266,7 +337,7 @@ section.slab {
 
 figure.plate { margin: 0; }
 figure.plate img {
-  border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow-lg);
+  border-radius: 8px; border: 1px solid var(--line); box-shadow: var(--shadow-lg);
 }
 figcaption {
   font-family: var(--sans); font-size: .9375rem;
@@ -306,7 +377,7 @@ figcaption {
 .gallery figure { margin: 0; }
 .gallery img {
   width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center;
-  border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow);
+  border-radius: 8px; border: 1px solid var(--line); box-shadow: var(--shadow);
   background: var(--surface);
 }
 
@@ -322,7 +393,7 @@ figcaption {
 .compare figure { margin: 0; }
 .compare img {
   width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
-  border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow);
+  border-radius: 8px; border: 1px solid var(--line); box-shadow: var(--shadow);
   background: var(--surface);
 }
 
@@ -336,8 +407,8 @@ figure.plan .plan-fig {
   display: block; width: 100%; height: auto;
   color: var(--accent);
   background: var(--surface);
-  border: 1px solid var(--line); border-radius: 12px;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: none;
   padding: 1.5rem 1.25rem;
 }
 figure.plan figcaption { margin-top: 1rem; }

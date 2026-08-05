@@ -9,7 +9,7 @@
 <link rel="alternate" hreflang="en" href="https://worldbytouch.com/">
 <link rel="alternate" hreflang="sr" href="https://worldbytouch.com/sr/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=b4f735ef">
 <meta property="og:title" content="World by Touch – taktilne karte koje se čitaju rukama">
 <meta property="og:description" content="3D štampane taktilne karte za slepe i slabovide. Karte i planovi zgrada po porudžbini za škole, muzeje i porodice.">
 <meta property="og:image" content="https://worldbytouch.com/assets/hands_map.jpg">
@@ -24,9 +24,15 @@
 <header class="site">
   <div class="wrap">
     <a class="brand" href="/sr/"><span class="mark" aria-hidden="true"></span>WORLD BY TOUCH</a>
-    <nav class="lang" aria-label="Jezik">
-      <a href="/" lang="en" hreflang="en">English</a>
+    <nav class="site-nav" aria-label="Odeljci">
+      <a href="#order">Šta možete naručiti</a>
+      <a href="#how">Kako to ide</a>
+      <a href="#price">Cena</a>
     </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="/" lang="en" hreflang="en">English</a>
+      <a class="btn btn-sm" href="mailto:glebmaksimov@worldbytouch.com?subject=Upit%20za%20taktilnu%20kartu&amp;body=1.%20Koji%20region%2C%20grad%20ili%20zgradu%20treba%20da%20obuhvati%3F%0A%0A2.%20Ko%20%C4%87e%20je%20koristiti%20%E2%80%93%20osoba%2C%20%C5%A1kola%2C%20muzej%3F%0A%0A3.%20Koliko%20primeraka%20vam%20treba%3F%0A%0A">Zatražite ponudu</a>
+    </div>
   </div>
 </header>
 
@@ -48,18 +54,24 @@
             <a class="btn btn-ghost" href="#how">Kako to ide</a>
           </div>
           <ul class="hero-facts">
-            <li>Od 150 €</li>
-            <li>Englesko i srpsko Brajevo pismo</li>
+            <li>Od 150 € za gotov komplet</li>
             <li>Odgovor za dva dana</li>
           </ul>
         </div>
 
         <figure class="hero-figure">
-          <img src="/assets/hands_map.jpg" width="1180" height="900" fetchpriority="high"
-               alt="Dve ruke leže na sklopljenoj taktilnoj karti, pogled odozgo. Četiri odštampane ploče čine jednu kartu Evrope, Bliskog istoka i severne Afrike, sa izdignutim belim granicama, rebrastim morima i malim izdignutim brojevima unutar većih država.">
+          <div class="hero-shot">
+            <img src="/assets/hands_map.jpg" width="1180" height="900" fetchpriority="high"
+                 alt="Dve ruke leže na sklopljenoj taktilnoj karti, pogled odozgo. Četiri odštampane ploče čine jednu kartu Evrope, Bliskog istoka i severne Afrike, sa izdignutim belim granicama, rebrastim morima i malim izdignutim brojevima unutar većih država.">
+            <span class="shot-tag">Prva štampa</span>
+            <span class="hero-inset">
+              <img src="/assets/render_labels.jpg" width="1200" height="900"
+                   alt="Uvećani prikaz iz današnjih fajlova: iste države nose oznake brojeva na Brajevom pismu, sidreni greben pa ćelije sa kupolastim tačkama, umesto štampanih cifara.">
+              <span class="shot-tag shot-tag-now">Danas</span>
+            </span>
+          </div>
           <figcaption>
-            <span class="tag">Prva štampa</span>
-            Komplet koji je moj prijatelj dobio. Čitanje te karte sa njim dalo je fajlove koje ovaj sajt danas nudi.
+            Provereno rukama, pa prepravljeno. Fotografija je komplet koji je moj prijatelj dobio, sa izdignutim ciframa. Umetnuti prikaz je ono što fajlovi sa ove stranice danas generišu.
           </figcaption>
         </figure>
       </div>
@@ -134,7 +146,7 @@
     </div>
   </section>
 
-  <section class="tint">
+  <section class="tint" id="order">
     <div class="wrap">
       <div class="split top">
         <div class="prose">
@@ -342,7 +354,7 @@
     </div>
   </section>
 
-  <section class="tint">
+  <section class="tint" id="price">
     <div class="wrap">
       <p class="eyebrow">Cena</p>
       <h2>Koliko košta</h2>

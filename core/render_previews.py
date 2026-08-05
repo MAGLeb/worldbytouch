@@ -18,8 +18,11 @@ import pyvista as pv
 
 from constants import CARD_WIDTH_MM as CW, CARD_HEIGHT_MM as CH
 
-PLA = "#d8cfc0"          # neutral warm filament tone
-BG = "#ded7c9"           # a shade darker than the PLA, so the plate has an edge
+# The printed set is grey PLA. Rendering it cream made the current files look
+# like a different, softer product than the one in the photographs, and a pale
+# object on a pale ground has almost no tonal range left for the relief.
+PLA = "#74746f"          # sampled off the first-print photograph
+BG = "#ded7c9"           # warm light ground, so the plate reads dark against it
 SIZE_43 = (1600, 1200)
 SIZE_34 = (1200, 1600)
 
@@ -49,17 +52,17 @@ def _add(p, mesh, color=PLA):
     # Low ambient is the point: at ambient 0.30 the unlit sides fill in and a
     # 1.2 mm ridge looks painted on rather than raised.
     p.add_mesh(mesh, color=color, smooth_shading=False,
-               specular=0.05, specular_power=12, ambient=0.12, diffuse=0.95)
+               specular=0.07, specular_power=14, ambient=0.14, diffuse=1.0)
 
 
 def _light(p):
     # key: off-axis but still facing the surface — raking enough to shadow the
     # braille domes and terrain steps, bright enough to keep PLA looking light
     p.add_light(pv.Light(position=(-0.45, 0.30, 0.80), light_type='cameralight',
-                         intensity=1.25))
+                         intensity=1.40))
     # fill: opposite side, weak, keeps the shadow sides from going black
     p.add_light(pv.Light(position=(0.65, -0.35, 0.45), light_type='cameralight',
-                         intensity=0.22))
+                         intensity=0.26))
 
 
 def _ssao(p, radius=SSAO_RADIUS_MM):

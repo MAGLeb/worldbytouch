@@ -9,7 +9,7 @@
 <link rel="alternate" hreflang="en" href="https://worldbytouch.com/">
 <link rel="alternate" hreflang="sr" href="https://worldbytouch.com/sr/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=b4f735ef">
 <meta property="og:title" content="World by Touch – tactile maps you read with your hands">
 <meta property="og:description" content="3D-printed tactile maps for blind and low-vision readers. Custom maps and building plans for schools, museums and families.">
 <meta property="og:image" content="https://worldbytouch.com/assets/hands_map.jpg">
@@ -24,9 +24,15 @@
 <header class="site">
   <div class="wrap">
     <a class="brand" href="/"><span class="mark" aria-hidden="true"></span>WORLD BY TOUCH</a>
-    <nav class="lang" aria-label="Language">
-      <a href="/sr/" lang="sr" hreflang="sr">Srpski</a>
+    <nav class="site-nav" aria-label="Sections">
+      <a href="#order">What you can order</a>
+      <a href="#how">How it works</a>
+      <a href="#price">Pricing</a>
     </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="/sr/" lang="sr" hreflang="sr">Srpski</a>
+      <a class="btn btn-sm" href="mailto:glebmaksimov@worldbytouch.com?subject=Tactile%20map%20enquiry&amp;body=1.%20Which%20region%2C%20city%20or%20building%20should%20it%20cover%3F%0A%0A2.%20Who%20will%20use%20it%20%E2%80%93%20a%20person%2C%20a%20school%2C%20a%20museum%3F%0A%0A3.%20How%20many%20copies%20do%20you%20need%3F%0A%0A">Get a quote</a>
+    </div>
   </div>
 </header>
 
@@ -48,18 +54,24 @@
             <a class="btn btn-ghost" href="#how">See how it works</a>
           </div>
           <ul class="hero-facts">
-            <li>From €150</li>
-            <li>English and Serbian braille</li>
+            <li>From €150 for the ready-made set</li>
             <li>Reply in two days</li>
           </ul>
         </div>
 
         <figure class="hero-figure">
-          <img src="/assets/hands_map.jpg" width="1180" height="900" fetchpriority="high"
-               alt="Two hands resting on the assembled tactile map, seen from above. Four printed tiles form one map of Europe, the Middle East and North Africa, with raised white borders, ribbed seas and small raised numbers inside the larger countries.">
+          <div class="hero-shot">
+            <img src="/assets/hands_map.jpg" width="1180" height="900" fetchpriority="high"
+                 alt="Two hands resting on the assembled tactile map, seen from above. Four printed tiles form one map of Europe, the Middle East and North Africa, with raised white borders, ribbed seas and small raised numbers inside the larger countries.">
+            <span class="shot-tag">First print</span>
+            <span class="hero-inset">
+              <img src="/assets/render_labels.jpg" width="1200" height="900"
+                   alt="Inset render from the current files: the same countries carry braille number labels, an anchor ridge followed by cells of domed dots, instead of printed digits.">
+              <span class="shot-tag shot-tag-now">Now</span>
+            </span>
+          </div>
           <figcaption>
-            <span class="tag">First print</span>
-            The set my friend received. Reading it with him is what produced the files this site now ships.
+            Tested by hand, then rebuilt. The photograph is the set my friend received, with raised digits on it. The inset is what the files on this page generate now.
           </figcaption>
         </figure>
       </div>
@@ -134,7 +146,7 @@
     </div>
   </section>
 
-  <section class="tint">
+  <section class="tint" id="order">
     <div class="wrap">
       <div class="split top">
         <div class="prose">
@@ -342,7 +354,7 @@
     </div>
   </section>
 
-  <section class="tint">
+  <section class="tint" id="price">
     <div class="wrap">
       <p class="eyebrow">Price</p>
       <h2>What it costs</h2>
