@@ -36,10 +36,10 @@ PLATE_GAP = 1.0 / 5.0          # LOGICAL_PART_PLATE_GAP
 
 # (source stl, plate name / object name)
 CARDS = [
-    ("card_1.stl", "Europe Tactile Map - Puzzle Card 1 of 4"),
-    ("card_2.stl", "Europe Tactile Map - Puzzle Card 2 of 4"),
-    ("card_3.stl", "Europe Tactile Map - Puzzle Card 3 of 4"),
-    ("card_4.stl", "Europe Tactile Map - Puzzle Card 4 of 4"),
+    ("card_1.stl", "Tactile Map - Card 1 of 4 - South-West (North Africa)"),
+    ("card_2.stl", "Tactile Map - Card 2 of 4 - South-East (Arabia)"),
+    ("card_3.stl", "Tactile Map - Card 3 of 4 - North-West (Europe)"),
+    ("card_4.stl", "Tactile Map - Card 4 of 4 - North-East (Caucasus)"),
     ("card_legend.stl", "Braille Legend - English"),
     ("card_legend_sr.stl", "Braille Legend - Serbian"),
     ("card_alphabet.stl", "Braille Alphabet Card - English"),
@@ -145,7 +145,8 @@ def build(src_dir, out_dir, verbose=True):
         ' xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"'
         ' xmlns:BambuStudio="http://schemas.bambulab.com/package/2021">\n'
         ' <metadata name="Application">blind_map export_3mf.py</metadata>\n'
-        ' <metadata name="Title">Tactile Map of Europe for the Blind</metadata>\n'
+        ' <metadata name="Title">Tactile Braille Map for the Blind:'
+        ' Europe &amp; Arabia</metadata>\n'
         ' <metadata name="Designer">Gleb Maksimov</metadata>\n'
         ' <metadata name="Description">3D-printed tactile map with braille labels,'
         ' terrain relief and snap-together puzzle cards</metadata>\n'
