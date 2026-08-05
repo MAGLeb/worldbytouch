@@ -19,9 +19,17 @@ import pyvista as pv
 from constants import CARD_WIDTH_MM as CW, CARD_HEIGHT_MM as CH
 
 PLA = "#d8cfc0"          # neutral warm filament tone
-BG = "#f4f2ee"
+BG = "#ded7c9"           # a shade darker than the PLA, so the plate has an edge
 SIZE_43 = (1600, 1200)
 SIZE_34 = (1200, 1600)
+
+# Ambient-occlusion radius in mm. 3 mm reaches across a braille cell and up the
+# side of a border ridge, which is what needs the contact shadow. A small radius
+# (~1 mm) darkens harder but bands the flat plateaus: the AO pass reads the
+# depth buffer, and under this near-orthographic tilt a plateau's depth ramps so
+# gently that its quantisation shows up as stripes. High bias suppresses the
+# rest of that self-occlusion noise.
+SSAO_RADIUS_MM = 3.0
 
 # card index -> (origin_x, origin_y) in the assembled map
 ORIGINS = [(0, 0), (CW, 0), (0, CH), (CW, CH)]
@@ -37,19 +45,33 @@ def _plotter(size, zoom=None):
 
 
 def _add(p, mesh, color=PLA):
-    # matte, PLA-like: almost no specular, so shape reads through shading only
+    # matte, PLA-like: almost no specular, so shape reads through shading only.
+    # Low ambient is the point: at ambient 0.30 the unlit sides fill in and a
+    # 1.2 mm ridge looks painted on rather than raised.
     p.add_mesh(mesh, color=color, smooth_shading=False,
-               specular=0.05, specular_power=8, ambient=0.30, diffuse=0.88)
+               specular=0.05, specular_power=12, ambient=0.12, diffuse=0.95)
 
 
 def _light(p):
     # key: off-axis but still facing the surface — raking enough to shadow the
     # braille domes and terrain steps, bright enough to keep PLA looking light
     p.add_light(pv.Light(position=(-0.45, 0.30, 0.80), light_type='cameralight',
-                         intensity=1.05))
+                         intensity=1.25))
     # fill: opposite side, weak, keeps the shadow sides from going black
     p.add_light(pv.Light(position=(0.65, -0.35, 0.45), light_type='cameralight',
-                         intensity=0.35))
+                         intensity=0.22))
+
+
+def _ssao(p, radius=SSAO_RADIUS_MM):
+    """Ambient occlusion, added AFTER the meshes are in the scene.
+
+    Without it, cream filament photographed against a light backdrop hides its
+    own relief: a border ridge, a braille dome and the flat plate all shade to
+    nearly the same value, and the picture reads as a pale smudge. The contact
+    shadow in the corner of every raised feature is what makes the geometry
+    legible at the size the site actually shows these images.
+    """
+    p.enable_ssao(radius=radius, bias=0.05, kernel_size=128, blur=True)
 
 
 def load(src, name):
@@ -99,6 +121,7 @@ def render(src, out_dir, verbose=True):
         p = _plotter(size)
         build(p)
         _light(p)
+        _ssao(p)
         if view:
             # Deterministic orthographic framing: parallel_scale IS the visible
             # half-height in mm, so the crop is exact. reset_camera()+zoom kept

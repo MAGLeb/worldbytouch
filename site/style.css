@@ -104,7 +104,7 @@ header.site .wrap {
   font-family: var(--sans); font-weight: 800; font-size: 1rem;
   letter-spacing: .09em; color: var(--ink); text-decoration: none;
 }
-.brand .mark {
+.mark {
   width: 1.5rem; height: 1.5rem; border-radius: .35rem;
   background: var(--accent); flex: none;
   background-image:
@@ -207,13 +207,21 @@ section.tint { background: var(--surface); }
 }
 .stat-grid dt {
   font-family: var(--sans); font-weight: 800;
-  font-size: clamp(1.6rem, 3.2vw, 2.1rem); letter-spacing: -0.03em;
+  font-size: clamp(1.4rem, 2.5vw, 1.75rem); letter-spacing: -0.03em;
   color: var(--accent); line-height: 1.05;
 }
+/* Each figure draws the thing its number counts, from the real geometry: the
+   tile grid with its dovetails, the four terrain steps over a ribbed sea, 27
+   written the way the map writes it, a print letter beside its braille cell. */
+.stat-fig {
+  display: block; width: 5rem; height: 3.35rem; margin: 0 0 1rem;
+  overflow: visible;
+}
+.stat-fig text { font-family: var(--sans); letter-spacing: -.02em; }
 @media (prefers-color-scheme: dark) { .stat-grid dt { color: var(--accent-hover); } }
 .stat-grid dd {
-  margin: .5rem 0 0; font-family: var(--sans);
-  font-size: .95rem; line-height: 1.45; color: var(--ink-soft);
+  margin: .55rem 0 0; font-family: var(--sans);
+  font-size: .9375rem; line-height: 1.5; color: var(--ink-soft);
 }
 
 /* ---------- figures ---------- */
@@ -319,6 +327,22 @@ ul.fixes li::before {
   content: ""; position: absolute; left: .4rem; top: .58em;
   width: .55rem; height: .55rem; border-radius: 50%; background: var(--accent);
 }
+
+/* ---------- floor-plan schematic ---------- */
+
+/* Drawn, not photographed: no plan has been printed yet, and a render dressed
+   up as a product shot would be a lie. Line weights follow the map's own
+   convention, a wall reads as the ridge a finger traces. */
+figure.plan { margin: 0; }
+figure.plan .plan-fig {
+  display: block; width: 100%; height: auto;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 1.5rem 1.25rem;
+}
+figure.plan figcaption { margin-top: 1rem; }
 
 /* ---------- links out ---------- */
 
@@ -458,13 +482,31 @@ ol.steps span { font-family: var(--sans); color: var(--ink-soft); font-size: .98
 /* ---------- footer ---------- */
 
 footer.site {
-  padding: 3rem 0 4rem; border-top: 1px solid var(--line);
+  padding: 3rem 0 4rem;
   font-family: var(--sans); font-size: .9875rem; color: var(--ink-soft);
 }
-footer.site ul {
-  list-style: none; padding: 0; margin: 0 0 1.25rem;
-  display: flex; flex-wrap: wrap; gap: 1.5rem;
+.foot-grid { display: grid; gap: 2.25rem; grid-template-columns: 1fr; }
+@media (min-width: 46rem) {
+  .foot-grid { grid-template-columns: 1.15fr 1fr; gap: 3rem; }
 }
-footer.site p { max-width: 40em; margin: 0; }
-footer.site p + p { margin-top: .6rem; }
-.fine { font-size: .875rem; color: var(--slate); }
+.foot-brand {
+  display: flex; align-items: center; gap: .6rem;
+  font-weight: 800; font-size: 1rem; letter-spacing: .09em;
+  color: var(--ink); margin: 0 0 .85rem;
+}
+.foot-line { max-width: 30em; margin: 0; }
+.foot-label {
+  font-size: .8125rem; font-weight: 750; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--slate); margin: 0 0 .4rem;
+}
+.foot-mail {
+  margin: 0 0 1.35rem; font-weight: 650;
+  /* 29 characters: a <wbr> after the @ gives it somewhere sane to break at 320 px */
+  font-size: clamp(.9375rem, 3.2vw, 1.0625rem);
+}
+.foot-mail a { overflow-wrap: anywhere; }
+.foot-links { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }
+.fine {
+  margin: 2.5rem 0 0; padding-top: 1.35rem; border-top: 1px solid var(--line);
+  font-size: .875rem; color: var(--slate);
+}

@@ -31,7 +31,8 @@ import render_previews as R
 from constants import CARD_WIDTH_MM as CW, CARD_HEIGHT_MM as CH
 
 SHOT_SIZE = (1600, 1200)
-BG = (244, 242, 238)          # render_previews.BG, for the content-crop probe
+# the backdrop, as RGB, so the content-crop probe knows what is not the object
+BG = tuple(int(R.BG.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
 
 
 def _shot(meshes, center, direction, half_h, size=SHOT_SIZE):
@@ -40,6 +41,7 @@ def _shot(meshes, center, direction, half_h, size=SHOT_SIZE):
     for m in meshes:
         R._add(p, m)
     R._light(p)
+    R._ssao(p)
     d = np.asarray(direction, float)
     d /= np.linalg.norm(d)
     c = np.asarray(center, float)
