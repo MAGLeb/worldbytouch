@@ -15,6 +15,7 @@ netcdf4
 
 # text glyphs + previews
 matplotlib
+pillow
 
 # data download
 requests

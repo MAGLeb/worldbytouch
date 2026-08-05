@@ -3,7 +3,7 @@
 Heal a tactile-map STL into a single print-ready watertight manifold.
 
 The generator emits a *soup* of overlapping closed shells (terrain slab +
-hundreds of bumps / digits / braille dots / border ribbons), concatenated
+hundreds of braille dots, anchor ridges and border ribbons), concatenated
 without a boolean union. That soup has: inverted normals on some shells,
 internal walls where shells overlap (the print shop's "шупљине"), and
 mutual self-intersections.
@@ -15,7 +15,7 @@ outward and which contains no internal walls.
 Two robustness details learned from the data:
   * The soup also contains thousands of degenerate <4-face slivers (from
     coincident overlapping triangles). They carry ~no area and are dropped.
-  * Surface features (bumps, digits, braille) sit with their flat bottom
+  * Surface features (braille dots, anchor ridges) sit with their flat bottom
     *coplanar* with the surface they rest on, so a plain union leaves them as
     separate floating bodies. We sink each top-surface body EMBED_MM into
     whatever is beneath it so the union truly fuses them into one solid.
@@ -24,7 +24,6 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
 import trimesh
 
 EMBED_MM = 0.4        # how deep to sink surface features so the union fuses them.

@@ -18,7 +18,6 @@ import json
 import sys
 from pathlib import Path
 
-import geopandas as gpd
 import numpy as np
 import trimesh
 from shapely.geometry import box as shapely_box
@@ -27,9 +26,9 @@ from shapely.ops import unary_union
 from config import MAP_BOUNDS
 from constants import (CARD_WIDTH_MM as CW, CARD_HEIGHT_MM as CH,
                        FULL_WIDTH_MM, FULL_HEIGHT_MM, BOUNDARY_WIDTH_MM,
-                       BRAILLE_DOT_RADIUS_MM, BRAILLE_ANCHOR_WIDTH_MM)
+                       BRAILLE_ANCHOR_WIDTH_MM)
 from countries import COUNTRIES, name_en
-from generate import braille_label_size, ANCHOR_LEAD_MM, braille_number_cells
+from generate import braille_label_size, braille_number_cells
 
 MIN_LON, MIN_LAT, MAX_LON, MAX_LAT = MAP_BOUNDS
 LON_PER_MM = (MAX_LON - MIN_LON) / FULL_WIDTH_MM

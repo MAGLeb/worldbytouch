@@ -4,7 +4,6 @@ Serbian legend card: number -> Serbian country name in Serbian Latin Braille,
 plus the texture samples (sea / border / city) with Serbian labels. Same clean
 fuse-and-verify pipeline as the rest; one watertight print-ready manifold.
 """
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +11,6 @@ import trimesh
 
 from constants import (CARD_WIDTH_MM as W, CARD_HEIGHT_MM as H, BASE_THICKNESS_MM,
                        WAVE_HEIGHT_MM, BOUNDARY_RELIEF_MM, BOUNDARY_WIDTH_MM,
-                       CAPITAL_HEIGHT_MM, CAPITAL_DIAMETER_MM,
                        BRAILLE_CELL_PITCH_MM)
 from generate import (create_segment_box, create_braille_anchor,
                       create_braille_cell_dots, braille_number_cells,

@@ -66,24 +66,3 @@ def tokenize(text):
             out.append(text[i])
             i += 1
     return out
-
-
-# Capital (as spelled in generate.CAPITALS) -> Serbian (ekavian) country name.
-# Used so the Serbian legend reads country names, not capitals.
-COUNTRY_SR = {
-    "Moscow": "Rusija", "Ankara": "Turska", "Tehran": "Iran",
-    "Riyadh": "Saudijska Arabija", "Cairo": "Egipat", "Algiers": "Alžir",
-    "Kyiv": "Ukrajina", "Warsaw": "Poljska", "Bucharest": "Rumunija",
-    "Baghdad": "Irak", "Kabul": "Avganistan", "Tripoli": "Libija",
-    "Tunis": "Tunis", "Damascus": "Sirija", "Amman": "Jordan",
-    "Baku": "Azerbejdžan", "Tbilisi": "Gruzija", "Yerevan": "Jermenija",
-    "Athens": "Grčka", "Sofia": "Bugarska", "Belgrade": "Srbija",
-    "Budapest": "Mađarska", "Vienna": "Austrija", "Rome": "Italija",
-    "Berlin": "Nemačka", "Minsk": "Belorusija", "Rabat": "Maroko",
-    "Khartoum": "Sudan", "Sanaa": "Jemen", "Muscat": "Oman",
-    "Abu Dhabi": "Emirati", "Doha": "Katar", "Kuwait City": "Kuvajt",
-    "Manama": "Bahrein", "Beirut": "Liban", "Jerusalem": "Izrael",
-    "Nicosia": "Kipar", "Tirana": "Albanija", "Skopje": "Makedonija",
-    "Podgorica": "Crna Gora", "Sarajevo": "Bosna", "Zagreb": "Hrvatska",
-    "Ljubljana": "Slovenija", "Bratislava": "Slovačka", "Prague": "Češka",
-}
