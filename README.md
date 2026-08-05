@@ -125,8 +125,9 @@ blind_map/
 ├── core/
 │   ├── config.py              # Map region (bounding box)
 │   ├── constants.py           # All tactile/physical parameters
-│   ├── generate.py            # Mesh building blocks: terrain, water, capitals,
-│   │                          #   numbers, braille, legend
+│   ├── generate.py            # Mesh building blocks: terrain, water, borders,
+│   │                          #   braille number labels, legend cards
+│   ├── countries.py           # ISO3 -> country name table (EN/SR) for the labels
 │   ├── build_all.py           # ENTRY POINT: full print-ready build
 │   ├── walls_buffer.py        # Border ridges (buffer + manifold extrude)
 │   ├── split_cards.py         # Boolean split into 4 puzzle cards
@@ -137,6 +138,8 @@ blind_map/
 │   ├── serbian_braille.py     # Serbian Latin (Gajica) braille tables
 │   ├── serbian_legend.py      # Serbian legend card
 │   ├── mesh_diagnostics.py    # Print-readiness verification
+│   ├── render_previews.py     # Preview renders of the print-ready STLs
+│   ├── render_site_assets.py  # The renders published on worldbytouch.com
 │   └── prepare_data/          # Data download & merge scripts
 ├── data/                      # Not in repo (too large)
 │   ├── input/                 # ETOPO1 elevation grid

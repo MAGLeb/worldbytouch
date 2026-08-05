@@ -10,6 +10,7 @@
   --accent-hover: #0e3c2f;
   --accent-ink: #ffffff;
   --focus: #b8460e;
+  --scroll-shadow: rgba(29, 33, 36, .34);
   --shadow: 0 1px 2px rgba(29, 33, 36, .06), 0 8px 24px rgba(29, 33, 36, .08);
   --shadow-lg: 0 2px 4px rgba(29, 33, 36, .08), 0 18px 48px rgba(29, 33, 36, .16);
   --max: 68rem;
@@ -30,6 +31,7 @@
     --accent-hover: #8fe0c3;
     --accent-ink: #0c2019;
     --focus: #ffb26b;
+    --scroll-shadow: rgba(0, 0, 0, .72);
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
     --shadow-lg: 0 2px 4px rgba(0, 0, 0, .5), 0 18px 48px rgba(0, 0, 0, .5);
   }
@@ -403,12 +405,28 @@ ol.steps span { font-family: var(--sans); color: var(--ink-soft); font-size: .98
 .price h3 { margin: .65rem 0 .75rem; font-size: 1.25rem; }
 .price p { font-family: var(--sans); font-size: .9875rem; line-height: 1.6; color: var(--ink-soft); }
 .price p:last-child { margin-bottom: 0; }
+/* margin-top:auto pins both cards' links to the same baseline, whatever the copy above */
+.price .price-cta { margin: auto 0 0; padding-top: 1.15rem; font-size: 1rem; font-weight: 650; }
 
 /* ---------- table ---------- */
 
+/* Below ~28rem the table scrolls sideways, and a cut-off column with no visible
+   scrollbar reads as broken. These four backgrounds are the classic pure-CSS
+   scroll shadow: the `local` covers ride with the content, the `scroll` shadows
+   stay put, so a shadow shows only on the edge that still has table behind it. */
 .table-scroll {
   overflow-x: auto; border-radius: 10px; border: 1px solid var(--line);
-  background: var(--surface); box-shadow: var(--shadow);
+  box-shadow: var(--shadow);
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(to right, var(--surface) 40%, transparent),
+    linear-gradient(to left, var(--surface) 40%, transparent),
+    radial-gradient(farthest-side at 0 50%, var(--scroll-shadow), transparent),
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent);
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-size: 2.5rem 100%, 2.5rem 100%, 1.1rem 100%, 1.1rem 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
 }
 .tactile { width: 100%; border-collapse: collapse; font-size: 1rem; min-width: 28rem; }
 .tactile th, .tactile td { text-align: left; padding: .85rem 1.15rem; border-bottom: 1px solid var(--line); }
@@ -448,3 +466,5 @@ footer.site ul {
   display: flex; flex-wrap: wrap; gap: 1.5rem;
 }
 footer.site p { max-width: 40em; margin: 0; }
+footer.site p + p { margin-top: .6rem; }
+.fine { font-size: .875rem; color: var(--slate); }

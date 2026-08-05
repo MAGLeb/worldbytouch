@@ -7,7 +7,7 @@ site/index.html      English
 site/sr/index.html   Serbian (Gajica latin)
 site/style.css       shared, light + dark
 site/favicon.svg
-site/assets/         photos and renders, built from data/ by core/render_previews.py
+site/assets/         photos (hand-picked crops) and renders (core/render_site_assets.py)
 content/             source material for the copy, not published
 ```
 
@@ -42,9 +42,16 @@ python3 -m http.server 8080 --directory site
   capital-city bumps. Every figure is marked with a `First print` or `Current files` tag.
   Keep that distinction: it is what makes the page credible. Re-tag or re-shoot whenever
   either side changes.
-- Renders come from `blind_map/core/render_previews.py` run against the current
-  `data/output/printready/*.stl`. Re-render after any geometry change, or the site starts
-  describing files that no longer exist.
+- Renders come from `core/render_site_assets.py`, run against the current
+  `data/output/printready/*.stl`:
+
+  ```bash
+  xvfb-run -a .venv/bin/python core/render_site_assets.py
+  ```
+
+  Every camera the site uses lives in that script. Re-render after any geometry change, or
+  the page starts describing files that no longer exist. The photographs are not produced
+  by it; their sources and crops are listed in its docstring.
 - The `27 countries labelled in braille` figure comes from the build log of
   `create_country_labels_mesh`. Re-check it after changing the map bounds, the country table
   or the label clearance ladder.
@@ -52,11 +59,17 @@ python3 -m http.server 8080 --directory site
   element-for-element the same; keep it that way so a change in one is easy to mirror.
 - Short dashes only (`–`). No em dashes anywhere, including `<title>`, Open Graph tags and the
   text inside the `mailto:` links.
-- The hero video goes into the `.video-slot` block on both pages. Keep the captions track and
-  print a text transcript next to the player: this site is read by the people it is about.
-- Both `mailto:` links carry a pre-filled three-question intake. If you change the questions,
-  change them in both languages.
+- The video has not been shot. Its place is marked by the `VIDEO SLOT` comment after the
+  gallery in both pages, and `.video-slot` in the stylesheet is kept for it. When the film
+  exists, it goes there with a captions track and the full transcript printed beside the
+  player: part of this audience cannot see the picture and part cannot hear the sound.
+- Four `mailto:` links, two intakes, both three questions: the hero button, the closing band
+  and the custom price card ask region / who reads it / how many copies; the ready-made price
+  card asks braille language / how many copies / where it ships. Change them in both
+  languages at once.
 - The `From €150` figure is the only published price. Custom work stays quote-only.
+- The footer claims no cookies, no tracking and nothing loaded from another server. Keep it
+  literally true: no analytics, no hosted fonts, no CDN, no embeds.
 - Accessibility is part of the product claim here: semantic headings with no skipped levels,
   alt text that describes what is in the picture, visible focus rings, contrast at or above
   4.5:1 in both themes, keyboard order. Test with a screen reader before shipping changes.
