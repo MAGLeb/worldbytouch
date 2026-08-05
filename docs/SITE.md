@@ -47,7 +47,8 @@ python3 -m http.server 8080 --directory site
 - **Photographs are the first print. Renders are the current files.** They are not the same
   object: the printed set carries raised Arabic numerals and the old braille dots, while the
   files now generate braille number labels with anchor ridges and 1.6 mm domed dots, and no
-  capital-city bumps. Every figure is marked with a `First print` or `Current files` tag.
+  capital-city bumps. Every figure is marked with a `First print` or `Now` chip, and the hero carries both at
+  once: the photograph with an inset of the current geometry.
   Keep that distinction: it is what makes the page credible. Re-tag or re-shoot whenever
   either side changes.
 - Renders come from `core/render_site_assets.py`, run against the current
@@ -79,10 +80,10 @@ python3 -m http.server 8080 --directory site
   gallery in both pages, and `.video-slot` in the stylesheet is kept for it. When the film
   exists, it goes there with a captions track and the full transcript printed beside the
   player: part of this audience cannot see the picture and part cannot hear the sound.
-- Four `mailto:` links, two intakes, both three questions: the hero button, the closing band
-  and the custom price card ask region / who reads it / how many copies; the ready-made price
-  card asks braille language / how many copies / where it ships. Change them in both
-  languages at once.
+- Five `mailto:` links, two intakes, both three questions: the header button, the hero
+  button, the closing band and the custom price card ask region / who reads it / how many
+  copies; the ready-made price card asks braille language / how many copies / where it
+  ships. Change them in both languages at once.
 - The `From €150` figure is the only published price. Custom work, plans included, stays
   quote-only.
 - The four figures in the stats band are inline SVG drawn from the real geometry: the tile
