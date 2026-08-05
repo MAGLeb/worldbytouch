@@ -6,14 +6,19 @@ Accounts, domain, mail and what all of it costs: `docs/INFRA.md`.
 ```
 site/index.html      English
 site/sr/index.html   Serbian (Gajica latin)
+site/sent/           thank-you page the contact form redirects to (EN)
+site/sr/sent/        the same in Serbian
 site/style.css       shared, light + dark
 site/favicon.svg
 site/assets/         photos (hand-picked crops) and renders (core/render_site_assets.py)
+functions/api/       Cloudflare Pages Function behind the contact form
 docs/content/        source material for the copy, not published
 ```
 
-No build step, no JavaScript, no external requests. The whole site works offline from the
-folder.
+No build step, no JavaScript on the page, no external requests from the browser. The
+contact form posts to a function on this same domain, so the footer's claim stays literally
+true and the form still works with scripting switched off: the answer is a redirect, not a
+script rewriting the page.
 
 `site/` is the publish root: everything inside it is served. Nothing that is not meant to be
 public may live there. That is why `.env` and everything under `docs/` sit outside it.
@@ -47,8 +52,12 @@ python3 -m http.server 8080 --directory site
 - **Photographs are the first print. Renders are the current files.** They are not the same
   object: the printed set carries raised Arabic numerals and the old braille dots, while the
   files now generate braille number labels with anchor ridges and 1.6 mm domed dots, and no
-  capital-city bumps. Every figure is marked with a `First print` or `Now` chip, and the hero carries both at
-  once: the photograph with an inset of the current geometry.
+  capital-city bumps. Every figure is marked with a `First print` or `Now` chip.
+- **One render on the page, and only in `What his hands found`.** A generated picture next to
+  a photograph of the real object always loses, and scattering renders through the page made
+  the product look like a model of itself. They stay in the README, which is a technical
+  document. When the second version is printed and photographed, that render goes and the
+  photograph takes its place – the note under the block already says so.
   Keep that distinction: it is what makes the page credible. Re-tag or re-shoot whenever
   either side changes.
 - Renders come from `core/render_site_assets.py`, run against the current
@@ -80,10 +89,15 @@ python3 -m http.server 8080 --directory site
   gallery in both pages, and `.video-slot` in the stylesheet is kept for it. When the film
   exists, it goes there with a captions track and the full transcript printed beside the
   player: part of this audience cannot see the picture and part cannot hear the sound.
-- Five `mailto:` links, two intakes, both three questions: the header button, the hero
-  button, the closing band and the custom price card ask region / who reads it / how many
-  copies; the ready-made price card asks braille language / how many copies / where it
-  ships. Change them in both languages at once.
+- Every call to action on the page is an anchor to `#contact`, which is a real form. It
+  posts to `functions/api/contact.js`, which validates, sends through Resend and redirects to
+  `/sent/` or `/sr/sent/`. A failure renders its own small page with the address on it, so
+  nobody loses what they typed without being told.
+- The form needs three variables on the Pages project, set once with
+  `wrangler pages secret put <NAME> --project-name worldbytouch`: `RESEND_API_KEY`,
+  `RESEND_FROM` and `CONTACT_TO`. The key lives in `.env` and nowhere else in the repository.
+- The hidden `company` field is a spam trap. A filled one is accepted with the same redirect
+  and never sent, so a bot learns nothing from the response.
 - The `From €150` figure is the only published price. Custom work, plans included, stays
   quote-only.
 - The four figures in the stats band are inline SVG drawn from the real geometry: the tile

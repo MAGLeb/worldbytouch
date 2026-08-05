@@ -145,29 +145,6 @@ section { padding: clamp(3.5rem, 7vw, 6rem) 0; }
 section.alt { background: var(--bg-alt); }
 section.tint { background: var(--surface); }
 
-/* The printed map is graphite with white relief. One band on the page is the
-   object's own colours: every token is re-pointed, so the lists, figures and
-   captions inside need no special cases, and the pale renders sit on it the way
-   the plates sit on a table. One band only, or it stops being a moment. */
-section.slab {
-  --bg-alt: #23282c;
-  --surface: #262c31;
-  --ink: #f3f0e9;
-  --ink-soft: #b9c0c7;
-  --line: #3b444c;
-  --slate: #9aa3a2;
-  --accent: #6fd0ad;
-  --accent-hover: #8fe0c3;
-  --accent-ink: #0c2019;
-  --focus: #ffb26b;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 8px 24px rgba(0, 0, 0, .40);
-  --shadow-lg: 0 2px 4px rgba(0, 0, 0, .5), 0 18px 48px rgba(0, 0, 0, .55);
-  background: #1a1e21;
-  color: var(--ink);
-  border-top: 1px solid #2c3237;
-  border-bottom: 1px solid #2c3237;
-}
-
 .eyebrow {
   font-family: var(--sans); font-size: .8125rem; font-weight: 750;
   letter-spacing: .16em; text-transform: uppercase;
@@ -232,21 +209,7 @@ section.slab {
   letter-spacing: .12em; text-transform: uppercase;
   padding: .3rem .5rem; border-radius: 3px; white-space: nowrap;
 }
-.hero-inset {
-  position: absolute; right: -.5rem; bottom: -1.1rem; width: 42%;
-  display: block; line-height: 0;
-}
-.hero-inset img {
-  width: 100%; border-radius: 6px; border: 1px solid var(--line);
-  box-shadow: var(--shadow-lg);
-}
-.hero-inset .shot-tag { top: .45rem; left: .45rem; font-size: .625rem; padding: .22rem .4rem; }
-/* the current-files chip takes the accent, so the pair reads as before and after */
-.shot-tag-now { background: var(--accent); color: var(--accent-ink); }
 .hero-figure figcaption { margin-top: 2.1rem; }
-@media (max-width: 30rem) {
-  .hero-inset { width: 48%; right: -.25rem; }
-}
 
 /* ---------- buttons ---------- */
 
@@ -304,13 +267,18 @@ section.slab {
   .stat-grid { grid-template-columns: 1fr 1fr; }
   .stat-grid > div { padding: 1.5rem 1.75rem 1.6rem; }
   .stat-grid > div:nth-child(-n+2) { border-top: 0; }
-  .stat-grid > div:nth-child(2n) { border-left: 1px solid var(--line); }
+  .stat-grid > div:nth-child(2n) { border-left: 1px solid var(--line); padding-right: 0; }
   .stat-grid > div:nth-child(odd) { padding-left: 0; }
 }
 @media (min-width: 62rem) {
   .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  /* Only the two outer edges lose their padding. The rule that dropped it from
+     every odd cell survived into this breakpoint and collapsed the third column
+     onto its own divider. */
   .stat-grid > div { border-top: 0; padding: 1.6rem 1.75rem 1.7rem; }
   .stat-grid > div + div { border-left: 1px solid var(--line); }
+  .stat-grid > div:nth-child(odd) { padding-left: 1.75rem; }
+  .stat-grid > div:nth-child(2n) { padding-right: 1.75rem; }
   .stat-grid > div:first-child { padding-left: 0; }
   .stat-grid > div:last-child { padding-right: 0; }
 }
@@ -319,14 +287,7 @@ section.slab {
   font-size: clamp(1.4rem, 2.5vw, 1.75rem); letter-spacing: -0.03em;
   color: var(--accent); line-height: 1.05;
 }
-/* Each figure draws the thing its number counts, from the real geometry: the
-   tile grid with its dovetails, the four terrain steps over a ribbed sea, 27
-   written the way the map writes it, a print letter beside its braille cell. */
-.stat-fig {
-  display: block; width: 5rem; height: 3.35rem; margin: 0 0 1rem;
-  overflow: visible;
-}
-.stat-fig text { font-family: var(--sans); letter-spacing: -.02em; }
+@media (prefers-color-scheme: dark) { .stat-grid dt { color: var(--accent-hover); } }
 @media (prefers-color-scheme: dark) { .stat-grid dt { color: var(--accent-hover); } }
 .stat-grid dd {
   margin: .55rem 0 0; font-family: var(--sans);
@@ -368,17 +329,12 @@ figcaption {
 }
 .split.top { align-items: start; }
 
-.gallery {
-  display: grid; gap: 1.25rem; margin-top: 2rem;
-  grid-template-columns: 1fr;
-}
-/* two up, not four: the braille macro is evidence, and it has to be legible */
-@media (min-width: 48rem) { .gallery { grid-template-columns: 1fr 1fr; gap: 1.75rem; } }
-.gallery figure { margin: 0; }
-.gallery img {
-  width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center;
-  border-radius: 8px; border: 1px solid var(--line); box-shadow: var(--shadow);
-  background: var(--surface);
+/* ---------- wide photograph ---------- */
+
+figure.wide-plate { margin: 2.75rem 0 0; }
+figure.wide-plate img {
+  width: 100%; border-radius: 8px; border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ---------- first print vs current files ---------- */
@@ -537,22 +493,45 @@ dl.feels dd { margin: 0; font-size: 1.0625rem; line-height: 1.5; color: var(--in
 .rebuilt .lead { font-size: clamp(1.0625rem, 1.7vw, 1.25rem); color: var(--ink-soft); }
 .rebuilt .compare { margin: 2.5rem 0 2.75rem; }
 
-dl.versus { margin: 0 0 2.25rem; display: grid; gap: 1.75rem; grid-template-columns: 1fr; }
-@media (min-width: 52rem) {
-  dl.versus { grid-template-columns: 1fr 1fr; gap: 2rem 2.5rem; }
-}
-dl.versus > div { border-top: 2px solid var(--ink); padding-top: 1rem; }
-dl.versus dt {
+/* Two fixed columns: what the first print did on the left, what the files do
+   now on the right, one pair of headings for all four rows. The per-line chips
+   stay in the markup for the stacked layout and for screen readers, and are
+   clipped once the headings above are doing that job. */
+.versus { margin: 0 0 2.25rem; }
+.versus dl { margin: 0; display: grid; gap: 1.75rem; }
+.versus-head { display: none; }
+.versus > dl > div { border-top: 2px solid var(--ink); padding-top: 1rem; }
+.versus dt {
   font-family: var(--sans); font-weight: 750; font-size: 1.125rem;
   letter-spacing: -.015em; margin-bottom: .8rem;
 }
-dl.versus dd {
+.versus dd {
   margin: 0 0 .6rem; font-family: var(--sans);
   font-size: .9375rem; line-height: 1.55;
 }
-dl.versus dd:last-child { margin-bottom: 0; }
-dl.versus .was { color: var(--ink-soft); }
-dl.versus .now { color: var(--ink); }
+.versus dd:last-child { margin-bottom: 0; }
+.versus .was { color: var(--ink-soft); }
+.versus .now { color: var(--ink); }
+@media (min-width: 52rem) {
+  .versus-head {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 2.5rem;
+    margin: 0 0 .4rem; font-family: var(--sans); font-size: .8125rem;
+    font-weight: 750; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--slate);
+  }
+  .versus-head span:last-child { color: var(--accent); }
+  .versus > dl > div {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 2.5rem;
+    align-items: start;
+  }
+  .versus dt { grid-column: 1 / -1; margin-bottom: .55rem; }
+  .versus dd { margin: 0; }
+  .versus .tag {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%);
+    white-space: nowrap; border: 0;
+  }
+}
 
 /* ---------- closing band ---------- */
 
@@ -563,12 +542,59 @@ dl.versus .now { color: var(--ink); }
 }
 .band h2, .band p { color: var(--accent-ink); }
 .band p { opacity: .92; max-width: 34em; }
-.band .band-cta { margin: 1.75rem 0 0; opacity: 1; }
 .band .btn { background: var(--accent-ink); color: var(--accent); }
 .band .btn:hover { background: var(--surface); }
 .band a:not(.btn) { color: var(--accent-ink); }
 /* the band background IS the accent, so the default ring would vanish on it */
 .band :focus-visible { outline-color: var(--accent-ink); }
+
+/* ---------- contact form ---------- */
+
+/* Posts to a function on this domain, so the footer's claim about third-party
+   requests stays true, and it works with JavaScript switched off: the answer is
+   a redirect to a static page, not a script rewriting this one. */
+.contact-form {
+  display: grid; gap: 1.1rem 1.5rem; margin-top: 2rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 46rem) {
+  .contact-form { grid-template-columns: 1fr 1fr; }
+  .field-wide, .form-send, .form-note, .trap { grid-column: 1 / -1; }
+}
+.field { display: grid; gap: .4rem; }
+.contact-form label {
+  font-family: var(--sans); font-size: .8125rem; font-weight: 750;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--accent-ink);
+}
+.contact-form input,
+.contact-form select,
+.contact-form textarea {
+  font: inherit; font-family: var(--sans); font-size: 1rem;
+  width: 100%; padding: .7rem .85rem;
+  color: var(--ink); background: var(--surface);
+  border: 1px solid var(--surface); border-radius: 6px;
+}
+.contact-form textarea { resize: vertical; min-height: 8rem; line-height: 1.5; }
+.contact-form input::placeholder,
+.contact-form textarea::placeholder { color: var(--ink-soft); opacity: 1; }
+.contact-form select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink) 50% 58%, transparent 58%),
+    linear-gradient(135deg, transparent 42%, var(--ink) 42% 50%, transparent 50%);
+  background-position: right 1.15rem center, right .75rem center;
+  background-size: .5rem .5rem; background-repeat: no-repeat;
+  padding-right: 2.25rem;
+}
+.form-send { margin: .35rem 0 0; }
+.contact-form .btn { background: var(--accent-ink); color: var(--accent); border: 0; cursor: pointer; }
+.contact-form .btn:hover { background: var(--surface); }
+.form-note {
+  margin: 0; font-family: var(--sans); font-size: .875rem; line-height: 1.55;
+  color: var(--accent-ink); max-width: 42em;
+}
+/* spam trap: never shown, never focusable, and a filled one is discarded */
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* ---------- footer ---------- */
 

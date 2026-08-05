@@ -32,11 +32,9 @@ import render_previews as R
 from constants import CARD_WIDTH_MM as CW, CARD_HEIGHT_MM as CH
 
 SHOT_SIZE = (1600, 1200)
-# Two backdrops, because the page has two grounds. Four of these renders live in
-# the graphite band and are shot on a dark ground so they read as plates on a
-# dark table; the rest sit in light sections and keep the warm one.
+# One warm light ground for every render: the site has no dark section any more,
+# and the README shows the same files.
 BG_LIGHT = R.BG
-BG_DARK = "#23272a"
 
 
 def _rgb(h):
@@ -134,7 +132,7 @@ def build(src, out, verbose=True):
     # 2. render_terrain.jpg — Black Sea, Caucasus, Caspian: stepped plateaus
     #    between two ribbed seas, at a raking angle so every step casts an edge.
     _save(_shot(clipped((188, 292, 188, 266, -7, 8)),
-                (240, 227, 1.0), (0.12, -0.58, 0.81), 43.0, bg=BG_DARK),
+                (240, 227, 1.0), (0.12, -0.58, 0.81), 43.0),
           out / "render_terrain.jpg", (1400, 1050))
 
     # 3. render_macro.jpg — one label at dome scale, the evidence behind "domes,
@@ -151,15 +149,14 @@ def build(src, out, verbose=True):
     if verbose:
         print(f"  (braille label found at {cx:.0f}, {cy:.0f} mm)")
     region = card.clip_box((cx - 14, cx + 14, cy - 11, cy + 11, -7, 8), invert=False)
-    macro = _shot([region], (cx, cy, 1.2), (0.22, -0.62, 0.75), 8.0, bg=BG_DARK)
+    macro = _shot([region], (cx, cy, 1.2), (0.22, -0.62, 0.75), 8.0)
     _save(macro.crop((40, 285, 1180, 1140)), out / "render_macro.jpg", (1400, 1050))
 
     # 4/5. the two reference cards, tilted just enough to shade the dots
     for fname, stl in (("render_legend.jpg", "card_legend.stl"),
                        ("render_alphabet.jpg", "card_alphabet.stl")):
-        im = _shot([R.load(src, stl)], (CW / 2, CH / 2, 0), (0.10, -0.30, 0.95), 98.0,
-                   bg=BG_DARK)
-        _save(im.crop(_frame_43(_content_box(im, BG_DARK), im.width, im.height)),
+        im = _shot([R.load(src, stl)], (CW / 2, CH / 2, 0), (0.10, -0.30, 0.95), 98.0)
+        _save(im.crop(_frame_43(_content_box(im), im.width, im.height)),
               out / fname, (1400, 1050), quality=87)
 
     # 6. render_files.jpg — everything in the download, laid out in two rows
