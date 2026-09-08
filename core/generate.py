@@ -770,8 +770,13 @@ def create_legend_card(number_legend):
                 all_faces.append(kf + vert_offset)
                 vert_offset += len(kv)
 
-        # Country name in Braille (truncate to fit)
-        braille_x = x + 14
+        # Country name in Braille (truncate to fit).
+        # Offset = widest key (2 cells = 12 mm) + one BLANK cell (6 mm). A word
+        # break in braille IS a blank cell; at the old x+14 a two-cell key left
+        # only 8 mm to the name — 2 mm more than the ordinary 6 mm cell pitch —
+        # so "24 bugarska" read as one run, "bdbugarska". Fixed offset (not
+        # key-relative) keeps every name starting at the same x down the column.
+        braille_x = x + 2 * BRAILLE_CELL_PITCH_MM + BRAILLE_CELL_PITCH_MM
         short_name = name[:max_chars].lower()
 
         braille_verts, braille_faces = create_braille_text(
@@ -854,7 +859,7 @@ def create_legend_card(number_legend):
         all_verts.append(kv)
         all_faces.append(kf + vert_offset)
         vert_offset += len(kv)
-    lbl_verts, lbl_faces = create_braille_text("key", key_x + 14, label_y, base_z)
+    lbl_verts, lbl_faces = create_braille_text("key", key_x + 18, label_y, base_z)
     if len(lbl_verts) > 0:
         all_verts.append(lbl_verts)
         all_faces.append(lbl_faces + vert_offset)

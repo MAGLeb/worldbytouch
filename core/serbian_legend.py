@@ -87,7 +87,10 @@ def build_serbian_legend(number_legend, out_path, embed=EMBED_MM, verbose=True):
         for i, dots in enumerate(braille_number_cells(str(num))):
             add(*create_braille_cell_dots(dots, x + i * BRAILLE_CELL_PITCH_MM, y, 0))
         name = name_sr(iso) or iso
-        bv, bf = serbian_braille_text(name, x + 14, y, 0)
+        # x + 18 = widest key (2 cells) + one BLANK cell: a word break in braille
+        # is a blank cell, and the old x+14 left a two-cell key only 8 mm of gap,
+        # so the key ran into the name under the finger. See generate.py.
+        bv, bf = serbian_braille_text(name, x + 3 * BRAILLE_CELL_PITCH_MM, y, 0)
         add(bv, bf)
 
     # texture samples: one bottom strip, Serbian label to the RIGHT of each
@@ -119,7 +122,7 @@ def build_serbian_legend(number_legend, out_path, embed=EMBED_MM, verbose=True):
     add(*create_braille_cell_dots(
         BRAILLE_DIGITS['1'], key_x + ANCHOR_LEAD_MM + BRAILLE_DOT_RADIUS_MM,
         sample_y + sample_h / 2 - BRAILLE_DOT_PITCH_MM, 0))
-    add(*serbian_braille_text("broj", key_x + 14, label_y, 0))
+    add(*serbian_braille_text("broj", key_x + 18, label_y, 0))
 
     soup = trimesh.Trimesh(vertices=np.vstack(soup_v), faces=np.vstack(soup_f),
                            process=True)
