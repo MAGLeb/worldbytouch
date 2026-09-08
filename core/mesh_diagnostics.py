@@ -217,13 +217,18 @@ def verdict(rep):
     triangle — removing it would re-open the (physically non-existent) slit, and
     every slicer ignores null faces. >5 would hint at a real problem.
     """
+    # None означает «проверка не запускалась» — это провал, а не пропуск:
+    # молчаливый pass по не выполненной проверке и есть то, от чего verdict
+    # должен защищать.
     ok = (
         rep.get('watertight') is True and
         rep.get('winding_consistent') is True and
-        (rep.get('enclosed_bodies') or 0) == 0 and
-        (rep.get('self_intersections') or 0) == 0 and
-        (rep.get('degenerate_faces') or 0) <= 5 and
-        (rep.get('nonmanifold_edges') or 0) == 0
+        rep.get('is_volume') is True and
+        rep.get('enclosed_bodies') == 0 and
+        rep.get('self_intersections') == 0 and
+        rep.get('degenerate_faces') is not None and
+        rep.get('degenerate_faces') <= 5 and
+        rep.get('nonmanifold_edges') == 0
     )
     return ok
 

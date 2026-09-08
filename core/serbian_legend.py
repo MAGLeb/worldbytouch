@@ -11,10 +11,10 @@ import trimesh
 
 from constants import (CARD_WIDTH_MM as W, CARD_HEIGHT_MM as H, BASE_THICKNESS_MM,
                        WAVE_HEIGHT_MM, BOUNDARY_RELIEF_MM, BOUNDARY_WIDTH_MM,
-                       BRAILLE_CELL_PITCH_MM)
+                       BRAILLE_CELL_PITCH_MM, BRAILLE_SKIRT_MM)
 from generate import (create_segment_box, create_braille_anchor,
                       create_braille_cell_dots, braille_number_cells,
-                      ANCHOR_LEAD_MM)
+                      ANCHOR_LEAD_MM, BRAILLE_DIGITS)
 from constants import BRAILLE_DOT_RADIUS_MM, BRAILLE_DOT_PITCH_MM
 from heal_mesh import EMBED_MM, prep_body as _prep
 from clean_mesh import clean_arrays
@@ -24,9 +24,19 @@ from countries import name_sr
 
 def serbian_braille_text(text, x, y, z, max_graphemes=12):
     """Serbian Latin string -> braille dots (digraphs = 1 cell), standard
-    Marburg cell pitch. (V, F)."""
+    Marburg cell pitch. (V, F). Never cuts mid-word: if the cap lands inside
+    a word, the whole word is dropped ("saudijska", not "saudijska ar")."""
+    toks = tokenize(text)
+    if len(toks) > max_graphemes:
+        cut = toks[:max_graphemes]
+        if ' ' in cut:  # backtrack to the last whole word
+            while cut and cut[-1] != ' ':
+                cut.pop()
+            while cut and cut[-1] == ' ':
+                cut.pop()
+        toks = cut
     vs, fs, off, cx = [], [], 0, x
-    for tok in tokenize(text)[:max_graphemes]:
+    for tok in toks:
         if tok == ' ':
             cx += BRAILLE_CELL_PITCH_MM
             continue
@@ -91,18 +101,23 @@ def build_serbian_legend(number_legend, out_path, embed=EMBED_MM, verbose=True):
             x2 = 10 + (s + 1) * (sample_w / 20)
             y1 = by + 0.8 * np.sin(s * 2 * np.pi / 5)
             y2 = by + 0.8 * np.sin((s + 1) * 2 * np.pi / 5)
-            add(*create_segment_box(x1, y1, x2, y2, 0, WAVE_HEIGHT_MM, 0.8))
+            # на юбке, как в английской легенде: heal_mesh не утопит на embed,
+            # образец печатается той же высоты, что волны на карте
+            add(*create_segment_box(x1, y1, x2, y2, -BRAILLE_SKIRT_MM,
+                                    BRAILLE_SKIRT_MM + WAVE_HEIGHT_MM, 0.8))
     add(*serbian_braille_text("more", 10 + sample_w + 3, label_y, 0))
     # border -> "granica"
     add(*create_segment_box(78, sample_y, 78,
-                            sample_y + sample_h, 0, BOUNDARY_RELIEF_MM, BOUNDARY_WIDTH_MM))
+                            sample_y + sample_h, -BRAILLE_SKIRT_MM,
+                            BRAILLE_SKIRT_MM + BOUNDARY_RELIEF_MM, BOUNDARY_WIDTH_MM))
     add(*serbian_braille_text("granica", 83, label_y, 0))
     # anchor ridge + one cell -> "broj" (number key); capital bumps were
-    # removed from the map 2026-08-05, so the old "grad" sample went too
+    # removed from the map 2026-08-05, so the old "grad" sample went too.
+    # Ячейка = настоящий ключ «1», а не (1,2,3) — буква L.
     key_x = 150
     add(*create_braille_anchor(key_x, sample_y + sample_h / 2, 0))
     add(*create_braille_cell_dots(
-        (1, 2, 3), key_x + ANCHOR_LEAD_MM + BRAILLE_DOT_RADIUS_MM,
+        BRAILLE_DIGITS['1'], key_x + ANCHOR_LEAD_MM + BRAILLE_DOT_RADIUS_MM,
         sample_y + sample_h / 2 - BRAILLE_DOT_PITCH_MM, 0))
     add(*serbian_braille_text("broj", key_x + 14, label_y, 0))
 

@@ -20,7 +20,7 @@ from constants import (
     CARD_WIDTH_MM, CARD_HEIGHT_MM,
     FULL_WIDTH_MM, FULL_HEIGHT_MM,
     BASE_THICKNESS_MM,
-    MAX_ELEVATION_MM, TERRAIN_LEVELS,
+    MAX_ELEVATION_MM, TERRAIN_LEVELS, PLATEAU_MIN_M, MOUNTAIN_MIN_M,
     BOUNDARY_WIDTH_MM, BOUNDARY_RELIEF_MM,
     WAVE_HEIGHT_MM, WAVE_INTERVAL_MM,
     TAB_HEIGHT_MM, TAB_DEPTH_MM, TAB_WIDTH_MM, TAB_HEAD_WIDTH_MM,
@@ -86,24 +86,27 @@ def load_elevation():
     # Keep original lon/lat grids for water mask
     lon_deg, lat_deg = np.meshgrid(lon, lat)
 
-    # Normalize elevation to 0-MAX_ELEVATION_MM
-    # Water (negative) = 0, land scaled to 0-MAX_ELEVATION_MM
+    # Квантование по АБСОЛЮТНЫМ высотам (гипсометрические пояса 500/1500 м),
+    # а не по доле от пика региона. Старая схема нормировала на максимум
+    # одного пикселя ETOPO, потом размывала — размытие опускало пик ниже
+    # верхнего бина, и 88.7% суши квантовалось в 0 мм, на высоту моря;
+    # «горы» сводились к 3 растровым ячейкам. Исправлено 2026-09-08.
     Z = elevation.copy().astype(float)
     land_mask = Z > 0
-    if land_mask.any():
-        Z[land_mask] = (Z[land_mask] / Z[land_mask].max()) * MAX_ELEVATION_MM
-    Z[Z < 0] = 0
+    Z[~land_mask] = 0.0
 
-    # Smooth for tactile comfort (сглаживание выбросов ETOPO, чтобы квантование
-    # не дало одиночных "соль-перец" пикселей на границах плато).
+    # Сглаживание в МЕТРАХ (выбросы ETOPO, чтобы квантование не дало
+    # одиночных "соль-перец" пикселей на границах плато).
     Z = gaussian_filter(Z, sigma=1.5)
 
-    # Квантование в TERRAIN_LEVELS плато: 0/1/2/3 мм при MAX=4, LEVELS=4.
-    # Ступени >= 2 × MIN_TACTILE_DIFFERENCE_MM — читаемо пальцем.
-    bin_edges = np.linspace(0, MAX_ELEVATION_MM, TERRAIN_LEVELS + 1)
-    level_values = bin_edges[:-1]  # floor каждого бина: [0, 1, 2, 3]
-    bin_idx = np.clip(np.digitize(Z, bin_edges) - 1, 0, TERRAIN_LEVELS - 1)
-    Z = level_values[bin_idx]
+    # море 0 / низменность 1 / плато 2 / горы 3 мм. Вся суша ≥ 1 мм: береговая
+    # линия — всегда ступень под пальцем, не смена текстуры.
+    step = MAX_ELEVATION_MM / TERRAIN_LEVELS  # 1.0 мм = ровно 5 слоёв по 0.2
+    levels = np.zeros_like(Z)
+    levels[land_mask] = 1 * step
+    levels[land_mask & (Z > PLATEAU_MIN_M)] = 2 * step
+    levels[land_mask & (Z > MOUNTAIN_MIN_M)] = 3 * step
+    Z = levels
 
     return X, Y, Z, lon_deg, lat_deg
 
@@ -796,9 +799,11 @@ def create_legend_card(number_legend):
             x2 = water_x + (seg + 1) * (sample_width / wave_segments)
             y1 = wave_base_y + 0.8 * np.sin(seg * 2 * np.pi / 5)
             y2 = wave_base_y + 0.8 * np.sin((seg + 1) * 2 * np.pi / 5)
+            # На юбке, как точки/якорь: низ ниже BASE_TOP_GUARD, heal_mesh не
+            # утопит на embed — образец той же высоты, что волны на карте.
             wave_verts, wave_faces = create_segment_box(
                 x1, y1, x2, y2,
-                base_z, WAVE_HEIGHT_MM, 0.8
+                base_z - BRAILLE_SKIRT_MM, BRAILLE_SKIRT_MM + WAVE_HEIGHT_MM, 0.8
             )
             if len(wave_verts) > 0:
                 all_verts.append(wave_verts)
@@ -817,7 +822,8 @@ def create_legend_card(number_legend):
     border_x = 78
     border_verts, border_faces = create_segment_box(
         border_x, sample_y, border_x, sample_y + sample_height,
-        base_z, BOUNDARY_RELIEF_MM, BOUNDARY_WIDTH_MM
+        base_z - BRAILLE_SKIRT_MM, BRAILLE_SKIRT_MM + BOUNDARY_RELIEF_MM,
+        BOUNDARY_WIDTH_MM
     )
     if len(border_verts) > 0:
         all_verts.append(border_verts)
@@ -839,8 +845,10 @@ def create_legend_card(number_legend):
         all_verts.append(kv)
         all_faces.append(kf + vert_offset)
         vert_offset += len(kv)
+    # Ячейка образца = настоящий ключ «1» (точка 1), а не (1,2,3) — буква L,
+    # которую ни один цифровой ключ на карте дать не может.
     kv, kf = create_braille_cell_dots(
-        (1, 2, 3), key_x + ANCHOR_LEAD_MM + BRAILLE_DOT_RADIUS_MM,
+        BRAILLE_DIGITS['1'], key_x + ANCHOR_LEAD_MM + BRAILLE_DOT_RADIUS_MM,
         sample_y + sample_height / 2 - BRAILLE_DOT_PITCH_MM, base_z)
     if len(kv) > 0:
         all_verts.append(kv)

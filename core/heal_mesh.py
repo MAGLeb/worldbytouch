@@ -135,7 +135,7 @@ def heal_union(path_in, path_out, embed_mm=EMBED_MM, verbose=True):
     t0 = time.time()
     if verbose:
         print(f"heal {Path(path_in).name} -> {Path(path_out).name}")
-    solids, stats = load_solids(path_in, embed_mm, verbose)
+    solids, stats = load_solids(path_in, embed_mm, verbose=verbose)
     union = union_solids(solids, verbose)
     Path(path_out).parent.mkdir(parents=True, exist_ok=True)
     union.export(str(path_out))
