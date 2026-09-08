@@ -26,7 +26,7 @@ screen, and both shaped the geometry this repository now generates:
 
 | What the first print got wrong | What the code does now |
 |---|---|
-| Country labels were raised Arabic numerals — legible to me, unreadable to him, so every number had to be read out loud by somebody else | Labels are braille numbers (`create_braille_number()` in `core/generate.py`), each with an anchor ridge on its left, so a single cell out on open ground still has a left edge and a baseline |
+| Country labels were raised Arabic numerals — legible to me, unreadable to him, so every number had to be read out loud by somebody else | Labels are braille keys (`create_braille_number()` in `core/generate.py`), each with an anchor ridge on its left, so a single cell out on open ground still has a left edge and a baseline. The keys are the digit cells a–j *without* the ⠼ number sign — the space-saving convention for map keys — and the legend card pairs every key with its country name |
 | Braille dots used the standard dimensions and printed as sharp points rather than domes, so a fingertip caught the tip and neighbouring dots blurred together | Every dot is a smooth dome on a buried skirt (`create_braille_dot()`): ⌀1.6 mm, 0.8 mm tall, Marburg Medium spacing — 2.5 mm between dots, 6 mm between cells |
 
 The photographs in this README are that first print. The renders are the files as
@@ -40,9 +40,9 @@ designed so a blind person can:
 | What | How it feels |
 |------|--------------|
 | Country borders | Raised ridge (1.2 mm) that follows the terrain under the finger |
-| Terrain | 4 tactile plateaus: sea / lowland / plateau / mountains (0/1/2/3 mm) |
+| Terrain | 4 tactile plateaus: sea / lowland / plateau / mountains (0/1/2/3 mm), cut at real 500 m and 1500 m elevation lines — all land sits at least 1 mm above the sea, so a coastline is always a step under the finger |
 | Sea | Wavy texture |
-| Country numbers | Braille number labels (Marburg Medium: ⌀1.6 mm dome dots, 2.5 mm dot pitch) with an anchor ridge that marks the cell frame |
+| Country numbers | Braille key labels (Marburg Medium: ⌀1.6 mm dome dots, 2.5 mm dot pitch) with an anchor ridge that marks the cell frame; keys are digit cells without the ⠼ sign, resolved by the legend card |
 | Legend | Braille country list + texture samples (sea, border, number key) |
 | Alphabet cards | Raised Latin letter next to its braille cell, for learning braille |
 
@@ -64,8 +64,8 @@ Serbian (Gajica braille, 30 letters including Č Ć Dž Đ Lj Nj Š Ž).
 |------|----------|
 | `tactile_map.stl` | The full 400×320 mm map in one piece |
 | `card_1.stl` … `card_4.stl` | The same map split into 4 puzzle cards |
-| `card_legend.stl` | Braille numbers → country names in English braille |
-| `card_legend_sr.stl` | Braille numbers → country names in Serbian braille |
+| `card_legend.stl` | Braille keys → country names in English braille |
+| `card_legend_sr.stl` | Braille keys → country names in Serbian braille |
 | `card_alphabet.stl` | English braille alphabet learning card (26 letters) |
 | `card_alphabet_sr.stl` | Serbian braille alphabet learning card (30 letters) |
 
@@ -180,6 +180,8 @@ worldbytouch/
 │   ├── countries/             # Downloaded border GeoJSONs
 │   └── output/                # Generated files (printready/, previews_v2/,
 │                              #   makerworld/)
+├── functions/api/             # Cloudflare Pages Function behind the site's contact form
+├── tools/stamp_css.py         # Cache-busting hash stamped into the CSS link on deploy
 ├── requirements.txt
 └── README.md
 ```
@@ -190,13 +192,13 @@ worldbytouch/
 
 | Parameter | Value |
 |-----------|-------|
-| Full map size | 400×320 mm |
-| Single card | 200×160 mm |
+| Full map size | 400×320 mm nominal (398.9×318.8 as exported — the plate follows the elevation raster's cell centres) |
+| Single card | 200×160 mm nominal; 204×164 mm printed footprint incl. dovetail tabs |
 | Base thickness | 6 mm |
-| Terrain plateaus | 0 / 1 / 2 / 3 mm (sea, lowland, plateau, mountains) |
+| Terrain plateaus | 0 / 1 / 2 / 3 mm (sea, lowland, plateau, mountains), banded at 0–500 / 500–1500 / >1500 m of real elevation |
 | Border ridge | +1.2 mm above local terrain, 1.5 mm wide |
-| Water waves | 2 mm high, every 4 mm |
-| Braille dots | Dome ⌀1.6 mm × 0.8 mm; 2.5 mm dot pitch, 6.0 mm cell pitch (Marburg Medium) |
+| Water waves | Sinusoidal swell up to 2 mm high, ~4 mm period (grid-sampled) |
+| Braille dots | ⌀1.6 mm domes; 2.5 mm dot pitch, 6.0 mm cell pitch (Marburg Medium spacing). Dome height 0.8 mm — above the ~0.5 mm standard, deliberately: at standard height on FDM the first reader lost the dots |
 | Label anchor ridge | 1.0 mm wide, full cell height, 1.4 mm clear of the dots |
 | Puzzle connectors | Dovetail tabs 8→13 mm wide × 4 × 3 mm, 0.5 mm clearance, drop-in from above |
 

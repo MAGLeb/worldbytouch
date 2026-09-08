@@ -1,7 +1,8 @@
 # worldbytouch.com
 
 Static site for World by Touch – tactile 3D-printed maps. Deployed on Cloudflare Pages.
-Accounts, domain, mail and what all of it costs: `docs/INFRA.md`.
+Accounts, domain, mail and what all of it costs: `docs/INFRA.md` (local only,
+gitignored — it holds account ids and is not in the repository).
 
 ```
 site/index.html      English

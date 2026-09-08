@@ -47,7 +47,7 @@ The frame runs from 5°E to 70°E and from 12°N to 55°N: Europe east of Italy 
 
 WHAT THE FINGERS FEEL
 • Country borders — a 1.2 mm ridge that rides on top of the local terrain, so you can trace a border continuously and still feel the relief on both sides of it
-• Terrain — 4 tactile plateaus: sea / lowland / plateau / mountains (0 / 1 / 2 / 3 mm). At 0.2 mm layer height each step is exactly 5 layers
+• Terrain — 4 tactile plateaus: sea / lowland / plateau / mountains (0 / 1 / 2 / 3 mm), banded at the real 500 m and 1500 m elevation lines, so all land sits at least 1 mm above the sea. At 0.2 mm layer height each step is exactly 5 layers
 • Sea — wavy texture, impossible to confuse with land
 • Country numbers — 27 countries carry a braille number at standard Marburg Medium spacing (rounded domes 1.6 mm across, 2.5 mm dot pitch, 6 mm cell pitch), placed at the most open point inside the country
 • An anchor ridge beside every number — a raised bar the height of the braille cell. An isolated cell on a map has no line, no neighbouring cells and no baseline, so there is nothing to tell a reader WHICH of the six dot positions is raised. The ridge marks the left edge and the top and bottom rows, and the ambiguity disappears
